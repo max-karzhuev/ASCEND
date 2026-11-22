@@ -1,0 +1,31 @@
+
+> ascend-private-gateway@1.0.0 test
+> node --test
+
+✔ rejects all private, loopback, link-local, mapped and documentation IP classes (7.274208ms)
+✔ custom endpoints require exact HTTPS host allowlist without credentials or redirects (0.973708ms)
+✔ transport rejects DNS answers containing a private address before opening a socket (0.389417ms)
+✔ transport cancels even when DNS resolution never returns (0.246958ms)
+✔ provider adapters have distinct verified wire formats (1.791ms)
+✔ openai parses a valid structured fixture (0.60125ms)
+✔ anthropic parses a valid structured fixture (0.161125ms)
+✔ gemini parses a valid structured fixture (0.332375ms)
+✔ compatible parses a valid structured fixture (0.228208ms)
+✔ bounded retry happens for rate limiting but never authentication errors (0.41275ms)
+✔ refusals, truncation and invalid JSON are never treated as grading (0.529958ms)
+✔ cancellation produces a clear timeout without invented output (0.135833ms)
+✔ malformed questions, duplicate IDs, unexpected fields and invalid grades fail validation (0.129875ms)
+✔ only configured, explicit model allowlists are exposed (0.662625ms)
+✔ quota survives restart and fails closed for corrupt persisted state (1.929083ms)
+✔ HTTP requires authentication, validates input and keeps provider secrets private (35.304292ms)
+✔ HTTP caches identical retry IDs without a second provider call and rejects changed content (8.705416ms)
+✔ HTTP refuses an in-flight duplicate without consuming quota or generating twice (6.054125ms)
+✔ HTTP rejects oversized requests and malformed provider output (3.136042ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 215.973792

@@ -1,0 +1,14 @@
+ASCEND final build verification — 2026-11-21
+Xcode 27.2 (27B52); SDKs 27.2; Swift 6.4.2
+
+mac-release
+2026-11-21 13:50:14.978 appintentsmetadataprocessor[6894:149928] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+** BUILD SUCCEEDED **
+
+ios-build
+2026-11-21 13:50:14.606 appintentsmetadataprocessor[6891:149897] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+** BUILD SUCCEEDED **
+
+Packaged app: codesign --verify --deep --strict --verbose=2 outputs/ASCEND.app
+Result: valid on disk; satisfies its Designated Requirement
+Executable: Mach-O universal, x86_64 and arm64

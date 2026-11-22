@@ -1,0 +1,5 @@
+.env
+.gateway-state
+test
+node_modules
+README.md
