@@ -13,6 +13,8 @@ A native, standalone SwiftUI app for macOS and iPhone. Quests, routines, real go
 - Native Mac sidebar, resizable windows, ⌘N for a quest, ⇧⌘R for an enabled cloud exchange; native iPhone tabs and navigation.
 - Ten themes (Shadow, Amber, Emerald, Crimson, Blue, Baby Blue, Pink, Lilac, Peach, and Teal), shared profile preferences, original vector branding, reduced-motion support, accessibility labels, and an accessible calendar list at large text sizes.
 - Mac desktop widgets for unfinished tasks, monthly calendar glow, and level progress. Control-click the desktop, choose **Edit Widgets**, and search for **ASCEND**.
+- A 30-day agenda for selected Apple calendars, Google accounts enabled in the system Calendar app, and Canvas LMS calendar subscriptions. [Connection instructions](Docs/SETUP.md#school-and-personal-calendars)
+- Confirmed deletion of individual occurrences or whole quests, including archived routines and logged weekly sessions. Archive remains available to preserve earned progress.
 - One-time, daily, selected-weekday, and weekly-session quests; individual-occurrence versus future-routine edits; archives; today/upcoming/completed/missed/category filters.
 - Immutable dated schedule snapshots, a continuous calendar glow, rest-day outlines, future-day protection, extra-activity markers, date details, planning timezone transitions, and scheduled-day streaks.
 - Numeric and weighted-milestone goals, linked quest contributions, editable manual contribution history, exact undo, levels, category XP, and ranks.

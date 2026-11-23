@@ -73,7 +73,7 @@ public enum Recurrence {
                 let historicalZone = ledger.effectiveZone(at: Planning(zone: ledger.profile.timeZone).date(day))
                 let o = Planning(zone: historicalZone).occurrence(quest, on: day)
                 if quest.schedule == .once && day != quest.startDay { continue }
-                if !existing.contains(o.id) { result.append(o) }
+                if !existing.contains(o.id) && !ledger.isDeleted(.occurrence, o.id) { result.append(o) }
             }
         }
         return result
@@ -82,7 +82,7 @@ public enum Recurrence {
         let p = Planning(zone: zone)
         return ledger.quests.compactMap { q in
             guard !ledger.isDeleted(.quest, q.id), let current = revision(for: q.id, day: day, ledger: ledger) else { return nil }
-            let o = p.occurrence(current, on: day); return o.available ? o : nil
+            let o = p.occurrence(current, on: day); return o.available && !ledger.isDeleted(.occurrence, o.id) ? o : nil
         }
     }
     /// A weekly session is an explicit user action, not an automatically generated daily occurrence.

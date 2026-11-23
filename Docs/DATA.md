@@ -8,6 +8,12 @@ The local Mac build saves a separate widget summary at `~/Library/Application Su
 
 Local mode keeps tracking on the device. Enabling sync in a configured Cloud build sends the history to your private Apple CloudKit database. Brainmaxing sends session requests and individual answers needing online grading through your configured gateway to the chosen AI provider. The app stores the gateway token in the device Keychain.
 
+## Deleting a quest
+
+Use the quest’s **…** menu to delete a single occurrence or the entire routine. One-time quests have a **Delete quest** action. The trash button under **Quests → Routines** also works for archived templates. Weekly targets offer deletion in their History menu. Review the scope in the confirmation dialog.
+
+Deletion removes the affected items, XP, linked goal credit, and planned-day counts from the active history. A deleted occurrence is skipped during later scheduling. A deleted parent also hides completions and occurrences arriving later from an offline device. The existing append-only operation archive retains historical payloads and deletion markers. Archive a routine instead if you want to keep historical scores.
+
 ## Export and import
 
 Settings → Export JSON writes a version-1 archive of the operation history, including quests, snapshots, goal contributions, completed/undone rewards, preferences, learning sessions, answers, and reports. It also retains previous generations after a shared reset. Store it privately if your notes or learning answers are sensitive.

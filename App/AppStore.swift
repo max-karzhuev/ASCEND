@@ -132,6 +132,9 @@ import Observation
         try commit(changes)
     }
     func complete(_ occurrence: Occurrence) throws {
+        guard !ledger.isDeleted(.quest, occurrence.templateID), !ledger.isDeleted(.occurrence, occurrence.id) else {
+            throw DataError.invalid("This quest was deleted.")
+        }
         if ledger.completion(occurrence.id)?.active == true { return }
         var o = displayOccurrence(occurrence)
         guard o.available, o.day <= today else { throw DataError.invalid("Future quests become available on their scheduled day") }

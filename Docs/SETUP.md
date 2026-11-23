@@ -55,6 +55,16 @@ Enabling sync merges existing local operations into the current Apple Account’
 
 If you sign out, local tracking continues. Reconnect the original account to resume. If another account is detected, syncing pauses and refuses to mix histories. To start fresh with the new account, export any needed data, clear local history through Settings, then connect. Importing an old export into a new account is an explicit data-transfer decision.
 
+## School and personal calendars
+
+On each device, open **ASCEND → Settings → Connected calendars → Connect Apple Calendar**. Apple requires full calendar permission to read events. Choose the calendars to display. Home shows up to three upcoming events. **Quests → Upcoming** shows the next 30 days and includes a refresh button.
+
+- **Canvas LMS.** Open your school’s Canvas **Calendar → Calendar Feed** and copy the private subscription URL. On Mac, paste it into **Apple Calendar → File → New Calendar Subscription**. On iPhone, use **Calendar → Calendars → Add Calendar → Add Subscription Calendar**. Refresh ASCEND’s calendar list and enable the subscription. Published assignments, quizzes, and exams appear when Canvas includes their dates in that feed. The refresh interval depends on Canvas and the system calendar subscription. [Canvas feed instructions](https://community.instructure.com/en/instructure/kb/articles/662804-how-do-i-view-the-calendar-ical-feed-to-import-and-subscribe-to-an-external-calendar) · [Apple subscription guide](https://support.apple.com/guide/calendar/subscribe-to-calendars-icl1022/mac)
+- **Google Calendar.** Enable Calendars for your Google account in the device’s Calendar accounts. On Mac you can use **Calendar → Add Account → Google**. Sign in through the system and then select the relevant calendars in ASCEND. [Google’s Apple Calendar setup](https://support.google.com/calendar/answer/99358)
+- **Apple Calendar.** Select the iCloud or local calendars you want to see under Connected calendars. To stop displaying events, deselect those calendars or choose **Disconnect all**. To revoke system access, use **Privacy & Security → Calendars**.
+
+This integration reads dates and titles through EventKit. Calendar events stay separate from quest progress. ASCEND keeps the selected calendar identifiers in device preferences and the displayed agenda in memory. Calendar accounts and private subscription URLs are managed by the system Calendar app.
+
 ## AI and notifications
 
 Core tracking never requires the gateway. Follow `Gateway/README.md` only when you want generated learning sessions. In the app, use the gateway token, **not a provider API key**.

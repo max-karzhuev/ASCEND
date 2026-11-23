@@ -3,6 +3,7 @@ import SwiftUI
 struct OverviewView: View {
     @Environment(AppStore.self) private var store
     @Environment(NavigationState.self) private var nav
+    @Environment(CalendarAgenda.self) private var agenda
     @Environment(CloudSync.self) private var sync
     var body: some View {
         GeometryReader { geometry in
@@ -26,6 +27,7 @@ struct OverviewView: View {
                     Spacer()
                     Button { nav.sheet = .activity } label: { Label("Activity", systemImage: "arrow.up.right") }.buttonStyle(.plain).font(.subheadline)
                 }.padding(.vertical, 2)
+                if !agenda.selected.isEmpty { AgendaCard(compact: true) }
                 StatusLabel(text: sync.status, icon: store.syncEnabled ? "icloud" : "externaldrive")
             }
         }
@@ -194,6 +196,7 @@ struct QuestRow: View {
     @Environment(AppStore.self) private var store
     @Environment(NavigationState.self) private var nav
     var occurrence: Occurrence
+    @State private var removal: QuestRemoval?
     var body: some View {
         let completed = store.ledger.completion(occurrence.id)?.active == true
         HStack(spacing: 12) {
@@ -213,12 +216,16 @@ struct QuestRow: View {
             Spacer(minLength: 4)
             Menu {
                 Button("Edit this occurrence") { nav.sheet = .occurrence(occurrence) }
+                if occurrence.quest.schedule != .once {
+                    Button("Delete this occurrence…", role: .destructive) { removal = .occurrence(occurrence) }
+                }
                 if let q = store.ledger.quests.first(where: { $0.id == occurrence.templateID }) {
                     Button("Edit future occurrences") { nav.sheet = .quest(q) }
                     Button("Archive routine") { store.perform { try store.archiveQuest(q) } }
+                    Button(q.schedule == .once ? "Delete quest…" : "Delete entire routine…", role: .destructive) { removal = .routine(q) }
                 }
             } label: { Image(systemName: "ellipsis").frame(width: 24, height: 35).foregroundStyle(Palette.muted) }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Options for \(occurrence.quest.title)")
-        }.padding(.vertical, 6)
+        }.padding(.vertical, 6).modifier(QuestRemovalConfirmation(removal: $removal))
     }
 }
 struct GoalSummaryRow: View {

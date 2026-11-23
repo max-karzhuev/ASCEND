@@ -5,6 +5,7 @@ struct QuestsView: View {
     @Environment(NavigationState.self) private var nav
     @State private var filter = "Today"
     @State private var category = "all"
+    @State private var removal: QuestRemoval?
     @State private var weeklyDraft: Occurrence?
     let filters = ["Today", "Upcoming", "Completed", "Missed", "Routines"]
     var filtered: [Occurrence] {
@@ -35,6 +36,7 @@ struct QuestsView: View {
                             VStack(alignment: .leading, spacing: 5) { Text(q.title).font(.headline); Text(q.archived ? "Archived · history preserved" : q.schedule.rawValue.capitalized).font(.caption).foregroundStyle(Palette.muted) }
                             Spacer()
                             Button("Edit") { nav.sheet = .quest(q) }.buttonStyle(.bordered)
+                            Button(role: .destructive) { removal = .routine(q) } label: { Image(systemName: "trash") }.accessibilityLabel("Delete \(q.title)")
                             if q.archived { Button("Restore") { var restored = q; restored.archived = false; store.perform { try store.saveQuest(restored, old: q) } } }
                         }.padding(.vertical, 6)
                     }
@@ -49,7 +51,8 @@ struct QuestsView: View {
                 }
             }
             if filter == "Today" { weeklyCard }
-        }.sheet(item: $weeklyDraft) { draft in NavigationStack { WeeklySessionEditor(occurrence: draft) }.editorFrame() }
+            if filter == "Upcoming" { AgendaCard() }
+        }.modifier(QuestRemovalConfirmation(removal: $removal)).sheet(item: $weeklyDraft) { draft in NavigationStack { WeeklySessionEditor(occurrence: draft) }.editorFrame() }
     }
     var weeklyCard: some View {
         let weekly = store.ledger.quests.compactMap { Recurrence.revision(for: $0.id, day: store.today, ledger: store.ledger) }.filter { $0.schedule == .weekly && !$0.archived && (category == "all" || $0.category == category) }
@@ -72,6 +75,14 @@ struct QuestsView: View {
                                         Button("\(store.ledger.completion(slot.id)?.active == true ? "Undo" : "Restore") session \(index + 1) · \(slot.day)") { store.toggle(slot) }
                                     }
                                     Button("Edit future weeks") { nav.sheet = .quest(template) }
+                                    Button("Delete entire routine…", role: .destructive) { removal = .routine(template) }
+                                    if !slots.isEmpty {
+                                        Menu("Delete a session…") {
+                                            ForEach(Array(slots.enumerated()), id: \.element.id) { index, slot in
+                                                Button("Session \(index + 1) · \(slot.day)", role: .destructive) { removal = .occurrence(slot) }
+                                            }
+                                        }
+                                    }
                                 }
                             }.font(.caption)
                             if count >= quest.weeklyTarget { Label("Weekly target reached", systemImage: "checkmark.seal").font(.caption).foregroundStyle(store.profile.theme.accent) }
@@ -318,5 +329,40 @@ struct ContributionEditor: View {
             ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             ToolbarItem(placement: .confirmationAction) { Button("Save") { store.perform { value.day = store.planning.day(date); try store.put(value, kind: .contribution, id: value.id, old: store.ledger.value(Contribution.self, kind: .contribution, id: value.id)); dismiss() } }.disabled(value.amount <= 0 || !value.amount.isFinite) }
         }.onAppear { date = store.planning.date(value.day) }
+    }
+}
+
+enum QuestRemoval {
+    case occurrence(Occurrence)
+    case routine(Quest)
+    var title: String {
+        switch self {
+        case .occurrence(let o): return "Delete “\(o.quest.title)” for \(o.day)?"
+        case .routine(let q): return "Delete “\(q.title)”?"
+        }
+    }
+    var message: String {
+        switch self {
+        case .occurrence: return "This removes this occurrence and its XP and goal credit. Other dates stay on your schedule."
+        case .routine: return "This removes the quest from all dates, including its completed history, XP, and linked goal credit. To keep history, use Archive instead."
+        }
+    }
+}
+struct QuestRemovalConfirmation: ViewModifier {
+    @Environment(AppStore.self) private var store
+    @Binding var removal: QuestRemoval?
+    func body(content: Content) -> some View {
+        content.alert(removal?.title ?? "Delete quest?", isPresented: Binding(get: { removal != nil },
+                      set: { if !$0 { removal = nil } }), presenting: removal) { item in
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                store.perform {
+                    switch item {
+                    case .occurrence(let o): try store.delete(kind: .occurrence, id: o.id)
+                    case .routine(let q): try store.delete(kind: .quest, id: q.id)
+                    }
+                }
+            }
+        } message: { Text($0.message) }
     }
 }

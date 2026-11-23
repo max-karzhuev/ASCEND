@@ -21,6 +21,50 @@ final class CoreTests: XCTestCase {
     func complete(_ ledger: Ledger, ids: [String]) throws -> Ledger {
         try ledger.merged(with: ledger.occurrences.filter { ids.contains($0.id) }.enumerated().map { try op(Completion(occurrence: $0.element), kind: .completion, id: $0.element.id, clock: ledger.maxClock + Int64($0.offset) + 1) })
     }
+    func testDeletedOccurrenceDisappearsFromPlanRewardsAndOfflineReplay() throws {
+        let q = quest(), base = try plannedLedger(q, through: q.startDay)
+        let id = try XCTUnwrap(base.occurrences.first?.id)
+        let credited = try complete(base, ids: [id])
+        let removed = Change(actor: "B", clock: 10, kind: .occurrence, entityID: id, fields: [:], deleted: true)
+        let deleted = try credited.merged(with: [removed] + credited.changes)
+        XCTAssertTrue(deleted.occurrences.isEmpty)
+        XCTAssertNil(deleted.completion(id))
+        XCTAssertEqual(Progression.totalXP(deleted), 0)
+        XCTAssertEqual(Progression.day(q.startDay, ledger: deleted, today: q.startDay).planned, 0)
+        XCTAssertTrue(Recurrence.missingSnapshots(ledger: deleted, now: p.date(q.startDay)).isEmpty)
+        XCTAssertTrue(Recurrence.projected(on: q.startDay, ledger: deleted, zone: p.zone).isEmpty)
+        XCTAssertEqual(Recurrence.projected(on: p.adding(1, to: q.startDay), ledger: deleted, zone: p.zone).count, 1)
+        _ = try Archive.decode(Archive(changes: deleted.changes).encoded())
+    }
+
+    func testDeletedRoutineHidesOfflineChildAndLinkedCredit() throws {
+        var q = quest(); var goal = Goal(); goal.title = "Read"; q.goalID = goal.id; q.contribution = 2
+        let base = try plannedLedger(q, through: q.startDay).merged(with: [op(goal, kind: .goal, id: goal.id)])
+        let credited = try complete(base, ids: base.occurrences.map(\.id))
+        let removed = Change(actor: "B", clock: 2, kind: .quest, entityID: q.id, fields: [:], deleted: true)
+        let deleted = try Ledger(changes: [removed]).merged(with: credited.changes)
+        XCTAssertTrue(deleted.quests.isEmpty)
+        XCTAssertTrue(deleted.occurrences.isEmpty)
+        XCTAssertEqual(Progression.goalValue(goal, ledger: deleted), 0)
+        XCTAssertEqual(Progression.totalXP(deleted), 0)
+        XCTAssertTrue(Recurrence.projected(on: p.adding(1, to: q.startDay), ledger: deleted, zone: p.zone).isEmpty)
+        _ = try Archive.decode(Archive(changes: deleted.changes).encoded())
+    }
+
+    func testDeletingOneWeeklySessionLeavesOtherSessionsAndTarget() throws {
+        let q = quest(.weekly), base = try plannedLedger(q, through: q.startDay)
+        let first = Recurrence.weeklySession(quest: q, day: q.startDay, zone: p.zone, sessionID: "first")
+        let other = Recurrence.weeklySession(quest: q, day: q.startDay, zone: p.zone, sessionID: "other")
+        let logged = try base.merged(with: [op(first, kind: .occurrence, id: first.id),
+                                             op(other, kind: .occurrence, id: other.id)])
+        let active = try complete(logged, ids: [first.id, other.id])
+        let deleted = try active.merged(with: [Change(actor: "B", clock: 20, kind: .occurrence,
+                                                     entityID: first.id, fields: [:], deleted: true)])
+        XCTAssertEqual(Recurrence.loggedSessions(templateID: q.id, day: q.startDay, zone: p.zone, ledger: deleted).map(\.id), [other.id])
+        XCTAssertEqual(deleted.quests, [q])
+        XCTAssertEqual(Progression.totalXP(deleted), q.difficulty.xp)
+    }
+
     func testDaylightSavingSpringAndFallHaveOneCivilOccurrence() throws {
         XCTAssertEqual(p.day(date("2026-03-08T04:59:00Z")), "2026-03-07")
         XCTAssertEqual(p.day(date("2026-03-08T05:01:00Z")), "2026-03-08")

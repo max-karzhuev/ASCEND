@@ -1,4 +1,5 @@
 import SwiftUI
+import EventKit
 
 enum Destination: String, CaseIterable, Identifiable {
     case overview, quests, goals, brain, activity, settings
@@ -51,11 +52,12 @@ struct AppContainer: View {
     @State private var sync: CloudSync
     @State private var ai = AIClient()
     @State private var navigation = NavigationState()
+    @State private var agenda = CalendarAgenda()
     @State private var reminders = ReminderService()
     @Environment(\.scenePhase) private var phase
     init(store: AppStore) { self.store = store; _sync = State(initialValue: CloudSync(store: store)) }
     var body: some View {
-        RootView().environment(store).environment(sync).environment(ai).environment(navigation).environment(reminders)
+        RootView().environment(store).environment(sync).environment(ai).environment(navigation).environment(reminders).environment(agenda)
             .onOpenURL { url in
                 guard url.scheme == "ascend", url.host == "widget" else { return }
                 if url.path == "/tasks" { navigation.destination = .quests }
@@ -69,8 +71,10 @@ struct AppContainer: View {
                 }
                 store.perform { try store.reconcile() }; await sync.sync(); await reminders.refresh(store: store)
             }
+            .onReceive(NotificationCenter.default.publisher(for: .EKEventStoreChanged).receive(on: RunLoop.main)) { _ in agenda.refresh() }
+            .task { agenda.refresh() }
             .onChange(of: phase) { _, phase in
-                if phase == .active { store.perform { try store.reconcile() }; Task { await sync.sync(); await reminders.refresh(store: store) } }
+                if phase == .active { agenda.refresh(); store.perform { try store.reconcile() }; Task { await sync.sync(); await reminders.refresh(store: store) } }
             }
             .task {
                 #if os(macOS)

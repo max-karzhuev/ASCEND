@@ -114,6 +114,7 @@ struct SettingsView: View {
                 Text("Control-click your desktop and choose Edit Widgets. Search for ASCEND, then add Tasks to Complete, Calendar Glow, or Today’s Progress.")
             }
             #endif
+            CalendarConnections()
             categoriesCard
             Card {
                 Text("Brainmaxing subjects").font(.title3.bold())
@@ -161,7 +162,7 @@ struct SettingsView: View {
                 Button("Clear local data on this device", role: .destructive) { confirmLocal = true }
                 Button("Reset shared history everywhere", role: .destructive) { confirmShared = true }
             }
-            Text("ASCEND · 1.3\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
+            Text("ASCEND · 1.4\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
         }.onAppear { name = store.profile.name; zone = store.planning.zone }
             .fileExporter(isPresented: $exporting, document: document, contentType: .json, defaultFilename: "ASCEND-\(store.today)") { result in if case .failure(let error) = result { store.error = error.localizedDescription } }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in

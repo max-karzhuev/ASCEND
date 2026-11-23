@@ -1,5 +1,11 @@
 # Validation results
 
+## Quest deletion and calendars, 23 November 2026
+
+ASCEND 1.4 passed the universal macOS Release and iPhone Simulator builds. All 34 core tests passed. The new regression cases cover removing an occurrence without removing the routine, removing a completed parent along with its linked credit, stale offline replay, export/import validation and removing one weekly session while preserving the others.
+
+A disposable iPhone simulator ran the app’s calendar reader against real EventKit calendars populated with synthetic assignments and exams. It verified opt-in selection, exclusion of an unselected calendar, the 30-day window, all-day events, chronological order, selection persistence, removal of an upstream event and disconnection. No personal Google account, school Canvas subscription or live iCloud exchange was used. The Mac bundle passed strict code-signature verification.
+
 ## Task and calendar widgets, 22 November 2026
 
 Version 1.3 passed the Mac Release and iPhone Simulator builds. Both new SwiftUI widget views were rendered with sample data. PlugInKit registered the packaged 1.3 widget extension. The launched app published a task list and month summary with consistent counts and intensity values. Desktop placement and actual WidgetKit refresh latency were not manually tested.

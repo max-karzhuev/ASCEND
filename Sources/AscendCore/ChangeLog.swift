@@ -104,13 +104,21 @@ public struct Ledger: Sendable {
         return Ledger(changes: Array(byID.values))
     }
     public var profile: Profile { value(Profile.self, kind: .profile, id: "shared") ?? Profile() }
-    public var quests: [Quest] { values(Quest.self, kind: .quest) }
+    public var quests: [Quest] { values(Quest.self, kind: .quest).filter { !$0.id.hasPrefix("override|") } }
     public var goals: [Goal] { values(Goal.self, kind: .goal) }
-    public var occurrences: [Occurrence] { values(Occurrence.self, kind: .occurrence).filter(\.available) }
-    public var completions: [Completion] { values(Completion.self, kind: .completion).filter(\.active) }
+    public var occurrences: [Occurrence] { values(Occurrence.self, kind: .occurrence).filter { $0.available && !isDeleted(.quest, $0.templateID) } }
+    public var completions: [Completion] { values(Completion.self, kind: .completion).filter { $0.active && !occurrenceRemoved($0.occurrenceID) } }
     public var sessions: [LearningSession] { values(LearningSession.self, kind: .session) }
     public var attempts: [Attempt] { values(Attempt.self, kind: .attempt) }
-    public func completion(_ id: String) -> Completion? { value(Completion.self, kind: .completion, id: id) }
+    private func occurrenceRemoved(_ id: String) -> Bool {
+        if isDeleted(.occurrence, id) { return true }
+        guard let encodedID = operations(.occurrence, id).first?.fields["templateID"],
+              let parent = try? JSONDecoder().decode(String.self, from: Data(encodedID.utf8)) else { return false }
+        return isDeleted(.quest, parent)
+    }
+    public func completion(_ id: String) -> Completion? {
+        occurrenceRemoved(id) ? nil : value(Completion.self, kind: .completion, id: id)
+    }
     public func effectiveZone(at now: Date) -> String {
         let transitions = values(TimeZoneTransition.self, kind: .timezone).filter { $0.effectiveAt <= now }
         return transitions.sorted { a, b in
