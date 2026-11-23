@@ -1,5 +1,11 @@
 # Validation results
 
+## Mental math difficulty and round XP, 23 November 2026
+
+Version 1.8 (build 10) passed the universal Mac Release and iPhone Simulator builds from a clean checkout. All 43 Swift tests and 21 gateway tests passed. The new tests cover all three difficulty presets, custom ranges, timer and operation preservation, and fixed five-point rewards across scores, duplicate deliveries, backups and shared reset.
+
+A native Mac test completed a five-second custom round with two correct answers. The result displayed +5 XP. Repeating the finish call, reopening an isolated on-disk SwiftData database, and importing the same archive twice all preserved exactly one rewarded round. The bundled app and widget matched the v1.8 release tag and passed strict code-signature verification, including after ZIP extraction.
+
 ## Mental math and release readiness, 23 November 2026
 
 Version 1.7 (build 9) passed the universal Mac Release and iPhone Simulator builds from a clean Git checkout. Regenerating the Xcode project produced no diff. All 41 Swift core tests and 21 gateway tests passed. The five new tests cover direct and inverse operations, operand bounds, invalid settings, partial answers, zero, replay, and the exact scoring deadline.
