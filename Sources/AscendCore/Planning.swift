@@ -106,6 +106,7 @@ public struct DaySummary: Sendable {
     public var completed: Int
     public var extras: Int
     public var xp: Int
+    public var mathRounds: Int = 0
     public var brainSessions: Int
     public var isFuture: Bool
     public var ratio: Double? { planned > 0 ? Double(completed) / Double(planned) : nil }
@@ -128,7 +129,10 @@ public enum Progression {
         while remainder >= required(level: level) { remainder -= required(level: level); level += 1 }
         return PlayerProgress(level: level, intoLevel: remainder, required: required(level: level), lifetime: max(0, xp))
     }
-    public static func totalXP(_ ledger: Ledger) -> Int { ledger.completions.reduce(0) { $0 + $1.xp } + ledger.attempts.reduce(0) { $0 + LearningRules.xp($1) } }
+    public static func totalXP(_ ledger: Ledger) -> Int {
+        ledger.completions.reduce(0) { $0 + $1.xp } + ledger.attempts.reduce(0) { $0 + LearningRules.xp($1) }
+            + ledger.mathRounds.count * MentalMathCompletion.xp
+    }
     public static func categoryXP(_ category: String, ledger: Ledger) -> Int { ledger.completions.filter { $0.category == category }.reduce(0) { $0 + $1.xp } }
     public static func day(_ day: String, ledger: Ledger, today: String) -> DaySummary {
         let planned = ledger.occurrences.filter { $0.day == day && $0.planned }
@@ -137,8 +141,10 @@ public enum Progression {
         let credits = active.filter { $0.day == day }
         let extras = credits.filter { c in !planned.contains { $0.id == c.occurrenceID } }.count
         let attempts = ledger.attempts.filter { $0.day == day && $0.submitted }
+        let mathRounds = ledger.mathRounds.filter { $0.day == day }.count
         return DaySummary(day: day, planned: planned.count, completed: completed, extras: extras,
-                          xp: credits.reduce(0) { $0 + $1.xp } + attempts.reduce(0) { $0 + LearningRules.xp($1) },
+                          xp: credits.reduce(0) { $0 + $1.xp } + attempts.reduce(0) { $0 + LearningRules.xp($1) } + mathRounds * MentalMathCompletion.xp,
+                          mathRounds: mathRounds,
                           brainSessions: Set(attempts.map(\.sessionID)).count, isFuture: day > today)
     }
     public static func streak(ledger: Ledger, now: Date) -> Int {

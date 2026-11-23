@@ -74,4 +74,48 @@ final class MentalMathTests: XCTestCase {
         let restarted = try XCTUnwrap(MentalMathRound(settings: settings))
         XCTAssertEqual(restarted.score, 0)
     }
+
+    func testDifficultyPresetsKeepTimerAndOperationsAndRespectCustomRanges() throws {
+        var settings = MentalMathSettings()
+        XCTAssertEqual(settings.difficulty, .medium)
+        settings.seconds = 30
+        settings.operations = [.division]
+        for (level, addMax, divisorMax) in [(Difficulty.easy, 20, 10), (.medium, 100, 12), (.hard, 500, 30)] {
+            settings.apply(level)
+            XCTAssertEqual(settings.difficulty, level)
+            XCTAssertEqual(settings.addLeft.high, addMax)
+            XCTAssertEqual(settings.factorLeft.high, divisorMax)
+            XCTAssertEqual(settings.seconds, 30)
+            XCTAssertEqual(settings.operations, [.division])
+            let question = try XCTUnwrap(MentalMathRound(settings: settings)).problem
+            XCTAssertEqual(question.left, question.right * question.solution)
+            XCTAssertTrue((settings.factorLeft.low...divisorMax).contains(question.right))
+        }
+        settings.addLeft.low = 42
+        XCTAssertNil(settings.difficulty)
+        let old = try JSONEncoder().encode(settings)
+        XCTAssertEqual(try JSONDecoder().decode(MentalMathSettings.self, from: old), settings)
+    }
+
+    func testRoundCreditIsFixedAndSurvivesArchiveAndDuplicateDelivery() throws {
+        let day = "2026-11-23"
+        var changes: [Change] = []
+        for (n, difficulty) in [Difficulty.easy, .medium, .hard].enumerated() {
+            let round = MentalMathCompletion(id: UUID().uuidString, day: day, seconds: 5, score: n * 8, difficulty: difficulty)
+            let fields = try Codec.fields(round)
+            changes.append(Change(actor: "mac", clock: Int64(n + 1), kind: .mentalMathRound, entityID: round.id, fields: fields))
+            changes.append(Change(actor: "phone", clock: Int64(n + 1), kind: .mentalMathRound, entityID: round.id, fields: fields))
+        }
+        let archive = try Archive.decode(Archive(changes: changes).encoded())
+        let ledger = try Ledger(changes: archive.changes).merged(with: changes)
+        XCTAssertEqual(ledger.mathRounds.count, 3)
+        XCTAssertEqual(Progression.totalXP(ledger), 15)
+        let summary = Progression.day(day, ledger: ledger, today: day)
+        XCTAssertEqual(summary.xp, 15)
+        XCTAssertEqual(summary.mathRounds, 3)
+        XCTAssertEqual(summary.completed, 0)
+        XCTAssertEqual(Progression.day("2026-11-22", ledger: ledger, today: day).xp, 0)
+        let reset = Change(actor: "mac", clock: 8, kind: .reset, entityID: UUID().uuidString, fields: [:])
+        XCTAssertEqual(Progression.totalXP(try ledger.merged(with: [reset])), 0)
+    }
 }

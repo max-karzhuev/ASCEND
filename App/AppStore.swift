@@ -59,32 +59,41 @@ import Observation
         }
         // No seed progress. Profile/category defaults are written only after onboarding.
     }
-    func saveMentalMath(settings: MentalMathSettings? = nil, result: MentalMathRecord.Result? = nil) throws {
+    func saveMentalMath(settings: MentalMathSettings) throws {
         var record = mentalMath
-        if let settings { record.settings = settings }
-        if let result { record.last = result }
+        record.settings = settings
         try setMetadata("mentalMath", data: JSONEncoder().encode(record))
         mentalMath = record
+    }
+    func finishMentalMath(_ result: MentalMathCompletion) throws {
+        guard ledger.operations(.mentalMathRound, result.id).isEmpty else { return }
+        var record = mentalMath
+        record.last = .init(score: result.score, seconds: result.seconds)
+        let change = Change(actor: actor, clock: ledger.maxClock + 1, generation: ledger.generation,
+                            kind: .mentalMathRound, entityID: result.id, fields: try Codec.fields(result))
+        try commit([change], mathRecord: record)
     }
     func perform(_ action: () throws -> Void) { do { try action() } catch { self.error = error.localizedDescription } }
     func metadata(_ key: String) -> Data? { (try? context.fetch(FetchDescriptor<StoredMetadata>()))?.first { $0.key == key }?.value }
     func metadataString(_ key: String) -> String? { metadata(key).flatMap { String(data: $0, encoding: .utf8) } }
     func setMetadata(_ key: String, string: String) throws { try setMetadata(key, data: Data(string.utf8)) }
-    func setMetadata(_ key: String, data: Data) throws {
+    private func stageMetadata(_ key: String, data: Data) throws {
         if let row = try context.fetch(FetchDescriptor<StoredMetadata>()).first(where: { $0.key == key }) { row.value = data }
         else { context.insert(StoredMetadata(key: key, value: data)) }
-        do { try context.save() } catch { context.rollback(); throw error }
     }
-    private func commit(_ changes: [Change], uploaded: Bool = false, token: Data? = nil) throws {
+    func setMetadata(_ key: String, data: Data) throws {
+        do { try stageMetadata(key, data: data); try context.save() } catch { context.rollback(); throw error }
+    }
+    private func commit(_ changes: [Change], uploaded: Bool = false, token: Data? = nil, mathRecord: MentalMathRecord? = nil) throws {
         let merged = try ledger.merged(with: changes)
         var known = Set(ledger.changes.map(\.id))
         do {
             for change in changes where known.insert(change.id).inserted { context.insert(try StoredChange(change, uploaded: uploaded)) }
-            if let token {
-                if let row = try context.fetch(FetchDescriptor<StoredMetadata>()).first(where: { $0.key == "cloudToken" }) { row.value = token }
-                else { context.insert(StoredMetadata(key: "cloudToken", value: token)) }
-            }
-            try context.save(); ledger = merged
+            if let token { try stageMetadata("cloudToken", data: token) }
+            if let mathRecord { try stageMetadata("mentalMath", data: JSONEncoder().encode(mathRecord)) }
+            try context.save()
+            ledger = merged
+            if let mathRecord { mentalMath = mathRecord }
         } catch { context.rollback(); throw error }
         #if os(macOS)
         publishWidget()

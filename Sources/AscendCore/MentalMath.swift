@@ -37,6 +37,37 @@ struct MentalMathSettings: Codable, Equatable {
         factorLeft.fits(1...999) && factorRight.fits(1...999)
     }
 
+    mutating func apply(_ difficulty: Difficulty) {
+        switch difficulty {
+        case .easy:
+            addLeft = .init(low: 1, high: 20)
+            addRight = addLeft
+            factorLeft = .init(low: 2, high: 10)
+            factorRight = factorLeft
+        case .medium:
+            let standard = MentalMathSettings()
+            addLeft = standard.addLeft
+            addRight = standard.addRight
+            factorLeft = standard.factorLeft
+            factorRight = standard.factorRight
+        case .hard:
+            addLeft = .init(low: 50, high: 500)
+            addRight = addLeft
+            factorLeft = .init(low: 12, high: 30)
+            factorRight = .init(low: 25, high: 150)
+        }
+    }
+
+    var difficulty: Difficulty? {
+        Difficulty.allCases.first { level in
+            var preset = self
+            preset.apply(level)
+            return preset == self
+        }
+    }
+
+    var difficultyName: String { difficulty?.rawValue.capitalized ?? "Custom" }
+
     var symbols: String { ArithmeticOperation.allCases.filter(operations.contains).map(\.rawValue).joined(separator: "  ") }
 }
 
@@ -64,6 +95,7 @@ struct MentalMathProblem: Equatable {
 }
 
 struct MentalMathRound {
+    let id = UUID().uuidString
     let settings: MentalMathSettings
     let deadline: ContinuousClock.Instant
     private(set) var problem: MentalMathProblem
@@ -98,4 +130,13 @@ struct MentalMathRecord: Codable {
     }
     var settings = MentalMathSettings()
     var last: Result?
+}
+
+struct MentalMathCompletion: Codable, Equatable, Sendable {
+    static let xp = 5
+    let id: String
+    let day: String
+    let seconds: Int
+    let score: Int
+    let difficulty: Difficulty?
 }

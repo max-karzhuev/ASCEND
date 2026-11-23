@@ -16,6 +16,10 @@ struct ActivityView: View {
                 ForEach(store.categories) { c in HStack { Text(c.name); Spacer(); Text("\(Progression.categoryXP(c.id, ledger: store.ledger)) XP").font(.subheadline.monospacedDigit()).foregroundStyle(store.profile.theme.accent) } }
                 let attempts = store.ledger.attempts.filter(\.submitted)
                 Divider()
+                if !store.ledger.mathRounds.isEmpty {
+                    Label("Mental math · \(store.ledger.mathRounds.count) rounds · \(store.ledger.mathRounds.count * MentalMathCompletion.xp) XP", systemImage: "timer")
+                        .font(.subheadline)
+                }
                 Text("Brainmaxing").font(.headline)
                 Text("\(attempts.count) questions submitted · \(attempts.reduce(0) { $0 + $1.hintsUsed }) hints used").font(.subheadline).foregroundStyle(Palette.muted)
                 let graded = attempts.filter { $0.correct != nil && $0.mode == .assessment }
@@ -37,6 +41,10 @@ struct DayDetail: View {
             ScreenHeader(eyebrow: "A day in your story", title: day, subtitle: summary.isFuture ? "Your upcoming plan" : summary.planned == 0 ? "A planned rest day" : "\(summary.completed) of \(summary.planned) planned quests complete")
             Card {
                 HStack { Label("\(summary.xp) XP", systemImage: "sparkle"); Spacer(); if let rate = summary.ratio { Text("\(Int(rate * 100))% complete").foregroundStyle(store.profile.theme.accent) } else { Text("No planned daily quests").font(.caption).foregroundStyle(Palette.muted) } }
+                if summary.mathRounds > 0 {
+                    Label("Mental math · \(summary.mathRounds) rounds · +\(summary.mathRounds * MentalMathCompletion.xp) XP", systemImage: "timer")
+                        .font(.subheadline)
+                }
                 let occurrences = store.occurrences(on: day)
                 if occurrences.isEmpty { Text("Rest is part of the journey.").foregroundStyle(Palette.muted) }
                 ForEach(occurrences) { occurrence in QuestRow(occurrence: occurrence) }

@@ -8,7 +8,7 @@ The local Mac build saves a separate widget summary at `~/Library/Application Su
 
 Local mode keeps tracking on the device. Enabling sync in a configured Cloud build sends the history to your private Apple CloudKit database. Brainmaxing sends session requests and individual answers needing online grading through your configured gateway to the chosen AI provider. The app stores the gateway token in the device Keychain.
 
-Mental math saves the last completed score, its duration and your drill settings as local SwiftData metadata. These stay on the device and are cleared by **Clear local data**.
+Mental math saves the last completed score, its duration and your drill settings as local SwiftData metadata. These settings and the local score summary are cleared by **Clear local data**. A timed finish in version 1.8 also records its ID, planning date, score, duration and difficulty in the activity ledger. Its 5 XP appear in backups and optional private sync.
 
 Home topic puzzles share the Brainmaxing session storage and export. Opening a built-in collection first saves that collection locally. Opening an AI topic requests a set if the current day has no cached set for that subject and model.
 

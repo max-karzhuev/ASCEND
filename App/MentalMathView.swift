@@ -19,6 +19,16 @@ struct MentalMathCard: View {
             }
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
+                    Menu(record.settings.difficultyName) {
+                        ForEach(Difficulty.allCases, id: \.self) { level in
+                            Button(level.rawValue.capitalized) {
+                                var settings = store.mentalMath.settings
+                                settings.apply(level)
+                                store.perform { try store.saveMentalMath(settings: settings) }
+                            }
+                        }
+                        Button("Customize ranges…") { nav.sheet = .mentalMath(quickStart: false) }
+                    }.fixedSize().accessibilityLabel("Difficulty, \(record.settings.difficultyName)")
                     Text("\(drillDuration(record.settings.seconds))   ·   \(record.settings.symbols)").font(.headline)
                     if let last = record.last {
                         Text("Last round · \(last.score) correct in \(drillDuration(last.seconds))").font(.caption).foregroundStyle(Palette.muted)
@@ -56,6 +66,8 @@ struct MentalMathView: View {
     @State private var round: MentalMathRound?
     @State private var finishedScore: Int?
     @State private var endedEarly = false
+    @State private var unsavedRound: MentalMathCompletion?
+    @State private var saveError: String?
     @State private var answer = ""
     @State private var appeared = false
 
@@ -95,7 +107,13 @@ struct MentalMathView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(endedEarly ? "Round ended early" : "Time’s up").font(.title2.bold())
                         Text("\(finishedScore) correct").font(.system(.largeTitle, design: .rounded, weight: .bold)).foregroundStyle(accent)
-                        Text("\(drillDuration(settings.seconds)) round   ·   \(settings.symbols)").foregroundStyle(Palette.muted)
+                        Text("\(settings.difficultyName) · \(drillDuration(settings.seconds)) · \(settings.symbols)").foregroundStyle(Palette.muted)
+                    }
+                    if let saveError {
+                        Text(saveError).foregroundStyle(.orange)
+                        Button("Retry saving round") { saveReward() }
+                    } else if !endedEarly {
+                        Label("+\(MentalMathCompletion.xp) XP", systemImage: "sparkles").foregroundStyle(accent)
                     }
                     Button("Play again") { start() }.buttonStyle(AccentButton(color: accent))
                     Button("Change settings") { self.finishedScore = nil }
@@ -130,6 +148,19 @@ struct MentalMathView: View {
         Group {
             Text("Solve as many as you can before time runs out. A correct answer advances immediately.")
                 .foregroundStyle(Palette.muted)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Difficulty").font(.headline)
+                HStack {
+                    ForEach(Difficulty.allCases, id: \.self) { level in
+                        Button(level.rawValue.capitalized) { applyPreset(level) }
+                            .buttonStyle(.bordered)
+                            .tint(selection?.difficulty == level ? accent : Palette.muted)
+                            .accessibilityAddTraits(selection?.difficulty == level ? .isSelected : [])
+                    }
+                }
+                Text("\(selection?.difficultyName ?? "Custom") ranges · Finish the timer to earn \(MentalMathCompletion.xp) XP.")
+                    .font(.caption).foregroundStyle(Palette.muted)
+            }
             Picker("Duration", selection: $settings.seconds) {
                 ForEach(MentalMathSettings.durations, id: \.self) { Text(drillDuration($0)).tag($0) }
             }
@@ -206,11 +237,21 @@ struct MentalMathView: View {
         }.padding(.vertical, 8)
     }
 
+    private func applyPreset(_ difficulty: Difficulty) {
+        settings.apply(difficulty)
+        addLeft = RangeDraft(settings.addLeft)
+        addRight = RangeDraft(settings.addRight)
+        factorLeft = RangeDraft(settings.factorLeft)
+        factorRight = RangeDraft(settings.factorRight)
+    }
+
     private func start() {
         guard let chosen = selection, let fresh = MentalMathRound(settings: chosen) else { return }
         store.perform { try store.saveMentalMath(settings: chosen) }
         settings = chosen
         finishedScore = nil
+        unsavedRound = nil
+        saveError = nil
         endedEarly = false
         answer = ""
         round = fresh
@@ -223,7 +264,20 @@ struct MentalMathView: View {
         typing = false
         finishedScore = active.score
         if !endedEarly {
-            store.perform { try store.saveMentalMath(result: .init(score: active.score, seconds: active.settings.seconds)) }
+            unsavedRound = MentalMathCompletion(id: active.id, day: store.planning.day(Date()),
+                seconds: active.settings.seconds, score: active.score, difficulty: active.settings.difficulty)
+            saveReward()
+        }
+    }
+
+    private func saveReward() {
+        guard let unsavedRound else { return }
+        do {
+            try store.finishMentalMath(unsavedRound)
+            self.unsavedRound = nil
+            saveError = nil
+        } catch {
+            saveError = "Couldn’t save the round. \(error.localizedDescription)"
         }
     }
 }

@@ -1,7 +1,7 @@
 import Foundation
 
 public enum EntityKind: String, Codable, CaseIterable, Sendable {
-    case profile, category, quest, revision, occurrence, completion, goal, contribution, milestone, session, attempt, timezone, reset
+    case profile, category, quest, revision, occurrence, completion, goal, contribution, milestone, session, attempt, mentalMathRound, timezone, reset
 }
 /// Immutable operations. Lamport order is independent of wall-clock accuracy.
 public struct Change: Codable, Equatable, Identifiable, Sendable {
@@ -64,6 +64,7 @@ public struct Ledger: Sendable {
         self.generation = generation
         self.current = self.changes.filter { $0.generation == generation && $0.kind != .reset }
         self.index = Dictionary(grouping: self.current, by: \.kind).mapValues { Dictionary(grouping: $0, by: \.entityID) }
+        mathRounds = values(MentalMathCompletion.self, kind: .mentalMathRound)
     }
     public func operations(_ kind: EntityKind, _ id: String) -> [Change] { index[kind]?[id] ?? [] }
     public func isDeleted(_ kind: EntityKind, _ id: String) -> Bool { operations(kind, id).contains(where: \.deleted) }
@@ -72,7 +73,7 @@ public struct Ledger: Sendable {
         guard !ops.isEmpty, !ops.contains(where: \.deleted) else { return nil }
         // Occurrence snapshots are first-writer-wins and atomic. Their first Lamport identity
         // freezes historical plans; explicit edits live in the separate quest/occurrence override.
-        if kind == .occurrence { return ops.first?.fields }
+        if kind == .occurrence || kind == .mentalMathRound { return ops.first?.fields }
         // Completion and attempt submissions are atomic, so two devices cannot blend a
         // completion's reward with another operation's goal quantity or answer.
         if kind == .completion { return ops.last?.fields }
@@ -109,6 +110,7 @@ public struct Ledger: Sendable {
     public var occurrences: [Occurrence] { values(Occurrence.self, kind: .occurrence).filter { $0.available && !isDeleted(.quest, $0.templateID) } }
     public var completions: [Completion] { values(Completion.self, kind: .completion).filter { $0.active && !occurrenceRemoved($0.occurrenceID) } }
     public var sessions: [LearningSession] { values(LearningSession.self, kind: .session) }
+    private(set) var mathRounds: [MentalMathCompletion] = []
     public var attempts: [Attempt] { values(Attempt.self, kind: .attempt) }
     private func occurrenceRemoved(_ id: String) -> Bool {
         if isDeleted(.occurrence, id) { return true }
@@ -191,6 +193,11 @@ public struct Archive: Codable {
                 case .attempt:
                     let a = try Codec.decode(Attempt.self, fields: f)
                     guard a.id == id, a.id == "\(a.sessionID)|\(a.questionID)", Planning.validDay(a.day), let s = ledger.value(LearningSession.self, kind: .session, id: a.sessionID), s.questions.contains(where: { $0.id == a.questionID }), a.answer.count <= 12000, a.hintsUsed >= 0, a.hintsUsed <= 3 else { throw DataError.invalid("Invalid learning attempt") }
+                case .mentalMathRound:
+                    let round = try Codec.decode(MentalMathCompletion.self, fields: f)
+                    guard round.id == id, UUID(uuidString: id) != nil, Planning.validDay(round.day),
+                          round.score >= 0, MentalMathSettings.durations.contains(round.seconds)
+                    else { throw DataError.invalid("Invalid mental math round") }
                 case .category: _ = try Codec.decode(Category.self, fields: f)
                 case .milestone:
                     let m = try Codec.decode(MilestoneCheck.self, fields: f)

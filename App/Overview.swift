@@ -226,7 +226,7 @@ struct CalendarCard: View {
             }
             .background { glow(for: summary) }
             .overlay(alignment: .bottom) {
-                if !summary.isFuture && (summary.extras > 0 || summary.brainSessions > 0) {
+                if !summary.isFuture && (summary.extras > 0 || summary.brainSessions > 0 || summary.mathRounds > 0) {
                     Circle().fill(summary.intensity > 0 ? ink(for: summary) : store.profile.theme.accent)
                         .frame(width: 4, height: 4).padding(.bottom, 3)
                 }

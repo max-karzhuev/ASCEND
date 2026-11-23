@@ -1,6 +1,6 @@
 # ASCEND project handoff
 
-ASCEND 1.7 (build 9) is a local-first SwiftUI app for macOS 14+ and iOS 17+. The repository contains the native app, Mac widget extension, dependency-free Swift core, and optional personal Node gateway. The app opens in local mode. Signing for a physical iPhone, private iCloud sync, and public Mac distribution each have their own setup in the [installation guide](Docs/SETUP.md).
+ASCEND 1.8 (build 10) is a local-first SwiftUI app for macOS 14+ and iOS 17+. The repository contains the native app, Mac widget extension, dependency-free Swift core, and optional personal Node gateway. The app opens in local mode. Signing for a physical iPhone, private iCloud sync, and public Mac distribution each have their own setup in the [installation guide](Docs/SETUP.md).
 
 ## Run a fresh checkout
 
@@ -36,9 +36,9 @@ The gateway receives the chosen subject and learning settings. Generated questio
 
 ## Mental math
 
-Home and the Mac Puzzles screen offer **Start drill** and a settings button. The default is a two-minute mix of addition, subtraction, multiplication and division. Players can select a duration from five seconds to ten minutes, choose operations, and edit each operand’s inclusive range. Subtraction reverses a sum and division reverses a product. Entering the complete answer scores a point and clears the field for the next question. The deadline continues across app backgrounding. Ending early shows the current score. Only a timed finish replaces the last completed score.
+Home and the Mac Puzzles screen offer **Start drill** and a settings button. The default is a two-minute mix of addition, subtraction, multiplication and division. The card and setup screen offer Easy, Medium and Hard operand presets. The previous default ranges are Medium. Hand-edited ranges remain available as Custom. Changing difficulty preserves operations and duration. Players can select a duration from five seconds to ten minutes, choose operations, and edit each operand’s inclusive range. Subtraction reverses a sum and division reverses a product. Entering the complete answer scores a point and clears the field for the next question. The deadline continues across app backgrounding. Ending early shows the current score. Only a timed finish replaces the last completed score.
 
-The drill runs offline. `AppStore` saves its settings and last completed score in the device’s SwiftData metadata under `mentalMath`. Clearing local data removes them. An active round lives in memory. Drill scores are device-local and independent of quest XP.
+The drill runs offline. `AppStore` saves its settings and last completed score in the device’s SwiftData metadata under `mentalMath`. Clearing local data removes them. An active round lives in memory. Starting in 1.8, a timed finish also writes a dated mentalMathRound operation to the activity ledger. Each distinct round ID earns 5 XP at every score and difficulty. The local result and ledger operation commit together. Rounds count toward daily and lifetime XP and travel with JSON exports and optional private sync. A manually stopped round earns no XP. Upgrade participating devices to 1.8 before exchanging new round records with iCloud. Version 1.7 kept only the last score locally, so older scores have no retrospective XP.
 
 ## GitHub and distribution
 
@@ -50,4 +50,4 @@ The drill runs offline. `AppStore` saves its settings and last completed score i
 
 ## Verification
 
-See [validation results](Docs/VALIDATION.md) for build and test evidence and the scope of live checks. For a quick manual pass, open General, choose the second question, request a hint, submit an answer and revisit it from Brainmaxing. With a configured gateway, select a custom subject, reopen Home and verify the same set returns. Send a draft from the home chat and open the expanded conversation. Check the compact and full calendars after completing a scheduled quest. For mental math, choose a five-second addition drill with both ranges fixed at 2. Type 4 twice, let the timer expire and verify that Home reports two correct. Start again and end early to confirm the last completed score is preserved.
+See [validation results](Docs/VALIDATION.md) for build and test evidence and the scope of live checks. For a quick manual pass, open General, choose the second question, request a hint, submit an answer and revisit it from Brainmaxing. With a configured gateway, select a custom subject, reopen Home and verify the same set returns. Send a draft from the home chat and open the expanded conversation. Check the compact and full calendars after completing a scheduled quest. For mental math, choose a five-second addition drill with both ranges fixed at 2. Type 4 twice, let the timer expire and verify that Home reports two correct and the player gains 5 XP. Start again and end early to confirm the last completed score is preserved.
