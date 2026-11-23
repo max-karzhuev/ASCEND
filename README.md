@@ -6,13 +6,13 @@ A native, standalone SwiftUI app for macOS and iPhone. Quests, routines, real go
 
 **Open the local delivery.** The delivery folder includes `Downloads/ASCEND.app` and `Downloads/ASCEND-Mac.zip`. For a Git checkout, run `./Scripts/build-local.sh`. See the [project handoff](HANDOFF.md) for release packaging and signing.
 
-![Example desktop widgets showing unfinished tasks and the calendar heatmap](Docs/Images/widgets.png)
+![Home with a compact calendar, quests, goals, physics puzzles and the chat composer, shown with sample data](Docs/Images/dashboard.png)
 
 ## What is implemented
 
 - Native Mac sidebar, resizable windows, ⌘N for a quest, ⇧⌘R for an enabled cloud exchange; native iPhone tabs and navigation.
 - Ten themes (Shadow, Amber, Emerald, Crimson, Blue, Baby Blue, Pink, Lilac, Peach, and Teal), shared profile preferences, original vector branding, reduced-motion support, accessibility labels, and an accessible calendar list at large text sizes.
-- Mac desktop widgets for unfinished tasks, monthly calendar glow, and level progress. Control-click the desktop, choose **Edit Widgets**, and search for **ASCEND**.
+- Mac desktop widgets for unfinished tasks, monthly calendar glow, and level progress. Control-click the desktop, choose **Edit Widgets**, and search for **ASCEND**. [Widget preview](Docs/Images/widgets.png)
 - A 30-day agenda for selected Apple calendars, Google accounts enabled in the system Calendar app, and Canvas LMS calendar subscriptions. [Connection instructions](Docs/SETUP.md#school-and-personal-calendars)
 - Confirmed deletion of individual occurrences or whole quests, including archived routines and logged weekly sessions. Archive remains available to preserve earned progress.
 - One-time, daily, selected-weekday, and weekly-session quests; individual-occurrence versus future-routine edits; archives; today/upcoming/completed/missed/category filters.

@@ -1,5 +1,13 @@
 # Validation results
 
+## Puzzle dashboard and release handoff, 23 November 2026
+
+Version 1.6, build 8, passed a fresh-checkout build for universal macOS Release and iPhone Simulator. Project regeneration produced no diff. All 36 Swift core tests and 21 gateway tests passed. The packaged app, embedded widget extension, and a fresh extraction of the Mac ZIP passed strict signature verification.
+
+An isolated in-memory profile opened a built-in collection, recorded a locally graded answer and round-tripped the archive. A local authenticated gateway fixture exercised the app’s topic loader and session client with three generated-format physics questions. Concurrent requests for the same topic and a second load after saving used exactly one upstream request. The fixture used a test token and simulated provider responses. The app’s actual SwiftUI dashboard rendered at 1000- and 390-point widths, with offline puzzles and a connected sample conversation composer. The narrow render used the Mac SwiftUI host. The iPhone simulator target was compiled separately.
+
+The GitHub workflow now includes the core and gateway suites, generated project consistency, native builds and Mac signature verification. Equivalent commands ran locally. A hosted GitHub Actions run, physical iPhone signing, live paid-provider credentials and public Mac notarization remain outside these checks. The source inventory excludes personal databases, local download bundles and gateway environment files. A local history scan found no matches for the common provider-token and private-key signatures checked.
+
 ## Widget appearance and AI Chat, 23 November 2026
 
 ASCEND 1.5 built for universal macOS Release and the iPhone simulator. All 34 Swift core tests and 21 gateway tests passed. A local chat fixture exercised ten consecutive turns, the recent-context limit, a failed send and retry, cancellation, and clearing while a reply was pending. The authenticated gateway tests verified that the selected model received the ordered conversation and that invalid conversations and malformed replies produced errors. Provider responses were simulated.
