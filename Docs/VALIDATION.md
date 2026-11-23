@@ -1,5 +1,11 @@
 # Validation results
 
+## Widget appearance and AI Chat, 23 November 2026
+
+ASCEND 1.5 built for universal macOS Release and the iPhone simulator. All 34 Swift core tests and 21 gateway tests passed. A local chat fixture exercised ten consecutive turns, the recent-context limit, a failed send and retry, cancellation, and clearing while a reply was pending. The authenticated gateway tests verified that the selected model received the ordered conversation and that invalid conversations and malformed replies produced errors. Provider responses were simulated.
+
+SwiftUI rendered the task list and monthly calendar with synthetic data in full-color, accented, and vibrant rendering environments. The accented render preserved pink tiles, contrasting date labels, and graded glow. The vibrant render showed distinct brightness levels. Desktop compositing and WidgetKit refresh latency on a user's wallpaper need a check on that desktop. Strict signature verification passed on the Mac app and on a fresh extraction from the ZIP.
+
 ## Quest deletion and calendars, 23 November 2026
 
 ASCEND 1.4 passed the universal macOS Release and iPhone Simulator builds. All 34 core tests passed. The new regression cases cover removing an occurrence without removing the routine, removing a completed parent along with its linked credit, stale offline replay, export/import validation and removing one weekly session while preserving the others.

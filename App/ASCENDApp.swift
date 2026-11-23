@@ -2,18 +2,18 @@ import SwiftUI
 import EventKit
 
 enum Destination: String, CaseIterable, Identifiable {
-    case overview, quests, goals, brain, activity, settings
+    case overview, quests, goals, brain, chat, activity, settings
     var id: String { rawValue }
-    var title: String { switch self { case .overview: "Overview"; case .brain: "Brainmaxing"; default: rawValue.capitalized } }
-    var icon: String { switch self { case .overview: "square.grid.2x2"; case .quests: "checklist"; case .goals: "scope"; case .brain: "brain.head.profile"; case .activity: "chart.bar.xaxis"; case .settings: "slider.horizontal.3" } }
+    var title: String { switch self { case .overview: "Overview"; case .brain: "Brainmaxing"; case .chat: "AI Chat"; default: rawValue.capitalized } }
+    var icon: String { switch self { case .overview: "square.grid.2x2"; case .quests: "checklist"; case .goals: "scope"; case .brain: "brain.head.profile"; case .chat: "bubble.left.and.bubble.right"; case .activity: "chart.bar.xaxis"; case .settings: "slider.horizontal.3" } }
 }
 enum SheetRoute: Identifiable {
-    case newQuest, quest(Quest), occurrence(Occurrence), newGoal, goalEdit(Goal), goal(Goal), day(String), session(LearningSession), activity
+    case newQuest, quest(Quest), occurrence(Occurrence), newGoal, goalEdit(Goal), goal(Goal), day(String), session(LearningSession), activity, chat
     var id: String {
         switch self {
         case .newQuest: "newQuest"; case .quest(let q): "edit\(q.id)"; case .occurrence(let o): "occurrence\(o.id)"
         case .newGoal: "newGoal"; case .goalEdit(let g): "editGoal\(g.id)"; case .goal(let g): "goal\(g.id)"
-        case .day(let d): "day\(d)"; case .session(let s): "session\(s.id)"; case .activity: "activity"
+        case .day(let d): "day\(d)"; case .session(let s): "session\(s.id)"; case .activity: "activity"; case .chat: "chat"
         }
     }
 }
@@ -78,7 +78,7 @@ struct AppContainer: View {
             }
             .task {
                 #if os(macOS)
-                store.publishWidget()
+                store.publishWidget(refreshExisting: true)
                 #endif
                 var previous = store.today
                 while !Task.isCancelled {
@@ -117,7 +117,8 @@ struct RootView: View {
                 #else
                 TabView(selection: $navigation.destination) {
                     ForEach([Destination.overview, .quests, .goals, .brain, .settings]) { destination in
-                        NavigationStack { screen(destination).navigationTitle(destination == .overview ? "ASCEND" : destination.title).navigationBarTitleDisplayMode(.inline) }
+                        NavigationStack { screen(destination).navigationTitle(destination == .overview ? "ASCEND" : destination.title).navigationBarTitleDisplayMode(.inline)
+                            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { navigation.sheet = .chat } label: { Label("AI Chat", systemImage: Destination.chat.icon) } } } }
                             .tabItem { Label(destination == .overview ? "Home" : destination == .brain ? "Brain" : destination.title, systemImage: destination.icon) }.tag(destination)
                     }
                 }
@@ -137,6 +138,7 @@ struct RootView: View {
                 case .day(let day): DayDetail(day: day)
                 case .session(let session): SessionView(sessionID: session.id)
                 case .activity: ActivityView()
+                case .chat: ChatView(isSheet: true)
                 }
             }.editorFrame().tint(store.profile.theme.accent).preferredColorScheme(.dark)
         }
@@ -184,6 +186,7 @@ struct RootView: View {
         case .quests: QuestsView()
         case .goals: GoalsView()
         case .brain: BrainView()
+        case .chat: ChatView()
         case .activity: ActivityView()
         case .settings: SettingsView()
         }

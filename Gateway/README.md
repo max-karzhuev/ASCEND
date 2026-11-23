@@ -40,6 +40,7 @@ All requests require `Authorization: Bearer <gateway token>`. POST requests requ
 | --- | --- |
 | `GET /v1/config` | Returns enabled providers/model allowlists and the personal usage counter; no credentials. Does not claim the provider is connected. |
 | `POST /v1/test` | Accepts requestID, provider, model; runs a minimal structured-output test. |
+| `POST /v1/chat` | Accepts requestID, provider, model and up to 15 alternating user/assistant messages ending with the current user message. Returns a validated reply. |
 | `POST /v1/session` | Adds config: subject, subtopic, ability, difficulty, count 1–10, practice/assessment mode. Returns validated questions. |
 | `POST /v1/grade` | Adds one question/reference, answer, hintsUsed, and mode. Returns correct, constructive feedback, and reviewTopic. |
 

@@ -29,10 +29,11 @@ struct TestResponse: Decodable { var ok: Bool }
 struct GatewayFailure: Decodable { struct Detail: Decodable { var code: String; var message: String }; var error: Detail }
 
 @MainActor @Observable final class AIClient {
-    var endpoint: String { didSet { UserDefaults.standard.set(endpoint, forKey: "ai.endpoint"); status = "Connection not tested" } }
-    var provider: String { didSet { UserDefaults.standard.set(provider, forKey: "ai.provider"); status = "Connection not tested" } }
-    var model: String { didSet { UserDefaults.standard.set(model, forKey: "ai.model"); status = "Connection not tested" } }
+    var endpoint: String { didSet { if oldValue != endpoint { chat.clear() }; UserDefaults.standard.set(endpoint, forKey: "ai.endpoint"); status = "Connection not tested" } }
+    var provider: String { didSet { if oldValue != provider { chat.clear() }; UserDefaults.standard.set(provider, forKey: "ai.provider"); status = "Connection not tested" } }
+    var model: String { didSet { if oldValue != model { chat.clear() }; UserDefaults.standard.set(model, forKey: "ai.model"); status = "Connection not tested" } }
     var dailyLimit: Int { didSet { UserDefaults.standard.set(dailyLimit, forKey: "ai.dailyLimit") } }
+    let chat = ChatSession()
     var status = "AI unconfigured"
     var providers: [String: [String]] = [:]
     var testing = false
@@ -55,7 +56,7 @@ struct GatewayFailure: Decodable { struct Detail: Decodable { var code: String; 
     }
     func saveToken(_ token: String) throws {
         guard validURL != nil else { throw DataError.invalid("Enter an HTTPS gateway URL first. Debug builds also accept localhost HTTP.") }
-        try KeychainVault.save(token, endpoint: endpoint); status = "Token saved securely · connection not tested"
+        try KeychainVault.save(token, endpoint: endpoint); chat.clear(); status = "Token saved securely · connection not tested"
     }
     private func request<T: Decodable>(_ path: String, body: [String: Any]? = nil) async throws -> T {
         guard let url = validURL, let token = KeychainVault.read(endpoint: endpoint) else { throw DataError.invalid("Configure your private AI gateway and authentication token in Settings") }
@@ -83,6 +84,7 @@ struct GatewayFailure: Decodable { struct Detail: Decodable { var code: String; 
         guard let response = response as? HTTPURLResponse else { throw DataError.invalid("Invalid gateway response") }
         guard (200..<300).contains(response.statusCode) else {
             let failure = try? JSONDecoder().decode(GatewayFailure.self, from: data)
+            if response.statusCode == 404, path == "v1/chat" { throw DataError.invalid("Update your ASCEND gateway to version 1.5 or later and restart it to enable chat.") }
             throw DataError.invalid(failure?.error.message ?? "Gateway returned HTTP \(response.statusCode)")
         }
         return try JSONDecoder().decode(T.self, from: data)
@@ -102,6 +104,13 @@ struct GatewayFailure: Decodable { struct Detail: Decodable { var code: String; 
             let result: TestResponse = try await request("v1/test", body: ["requestID": UUID().uuidString, "provider": provider, "model": model])
             status = result.ok ? "Provider connection verified just now" : "Provider test did not succeed"
         } catch { status = "Connection failed · \(error.localizedDescription)" }
+    }
+    func chatReply(to messages: [[String: String]]) async throws -> String {
+        struct Reply: Decodable { let reply: String }
+        let response: Reply = try await request("v1/chat", body: ["requestID": UUID().uuidString, "provider": provider, "model": model, "messages": messages])
+        let reply = response.reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !reply.isEmpty, reply.utf16.count <= 8000 else { throw DataError.invalid("The provider returned an invalid chat reply.") }
+        return reply
     }
     func generate(_ config: LearningConfig, day: String) async throws -> LearningSession {
         let value = try JSONSerialization.jsonObject(with: JSONEncoder().encode(config))

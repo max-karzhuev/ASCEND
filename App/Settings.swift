@@ -162,7 +162,7 @@ struct SettingsView: View {
                 Button("Clear local data on this device", role: .destructive) { confirmLocal = true }
                 Button("Reset shared history everywhere", role: .destructive) { confirmShared = true }
             }
-            Text("ASCEND · 1.4\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
+            Text("ASCEND · 1.5\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
         }.onAppear { name = store.profile.name; zone = store.planning.zone }
             .fileExporter(isPresented: $exporting, document: document, contentType: .json, defaultFilename: "ASCEND-\(store.today)") { result in if case .failure(let error) = result { store.error = error.localizedDescription } }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
@@ -173,8 +173,8 @@ struct SettingsView: View {
                 }
             }
             .confirmationDialog("Merge this local history with your private iCloud history?", isPresented: $confirmSync, titleVisibility: .visible) { Button("Enable and merge") { Task { await sync.enable() } } } message: { Text("Use the same Apple Account, container, and CloudKit environment on both devices. Local data will be associated with this Apple Account.") }
-            .confirmationDialog("Clear this device’s data?", isPresented: $confirmLocal, titleVisibility: .visible) { Button("Clear local data", role: .destructive) { sync.disable(); store.perform { try store.clearLocal() }; Task { await reminders.refresh(store: store) } } } message: { Text("This removes local history and pending changes and disables sync. Cloud history is unchanged and can be downloaded again. Export first if you need unsynced changes.") }
-            .confirmationDialog("Reset history on every connected device?", isPresented: $confirmShared, titleVisibility: .visible) { Button("Reset shared history", role: .destructive) { store.perform { try store.resetEverywhere() }; Task { await sync.sync() } } } message: { Text("Progress and learning history will be reset after devices exchange with iCloud. Offline changes from the old history cannot restore it. The underlying change archive is retained for convergence; see the data-deletion guide for physical erasure. Export first if needed.") }
+            .confirmationDialog("Clear this device’s data?", isPresented: $confirmLocal, titleVisibility: .visible) { Button("Clear local data", role: .destructive) { sync.disable(); store.perform { try store.clearLocal(); ai.chat.clear() }; Task { await reminders.refresh(store: store) } } } message: { Text("This removes local history and pending changes and disables sync. Cloud history is unchanged and can be downloaded again. Export first if you need unsynced changes.") }
+            .confirmationDialog("Reset history on every connected device?", isPresented: $confirmShared, titleVisibility: .visible) { Button("Reset shared history", role: .destructive) { store.perform { try store.resetEverywhere(); ai.chat.clear() }; Task { await sync.sync() } } } message: { Text("Progress and learning history will be reset after devices exchange with iCloud. Offline changes from the old history cannot restore it. The underlying change archive is retained for convergence; see the data-deletion guide for physical erasure. Export first if needed.") }
     }
     func profileBinding(_ key: WritableKeyPath<Profile, Bool>) -> Binding<Bool> { Binding(get: { store.profile[keyPath: key] }, set: { value in var p = store.profile; p[keyPath: key] = value; store.perform { try store.saveProfile(p) } }) }
     func reminderBinding(_ key: WritableKeyPath<Profile, Bool>) -> Binding<Bool> {
@@ -194,7 +194,7 @@ struct SettingsView: View {
             Text("Use the HTTPS address of your own ASCEND gateway. Its administrator sets the gateway token in ASCEND_AUTH_TOKEN. Provider API keys belong on the gateway.").font(.callout)
             TextField("Gateway URL · https://…", text: $ai.endpoint).textFieldStyle(.roundedBorder).autocorrectionDisabled()
             HStack { SecureField("Gateway authentication token", text: $token).textFieldStyle(.roundedBorder); Button("Save token") { store.perform { try ai.saveToken(token); token = "" } }.buttonStyle(.bordered).disabled(token.isEmpty) }
-            Button("Forget gateway token") { store.perform { try KeychainVault.save("", endpoint: ai.endpoint); ai.status = "AI unconfigured · gateway token removed" } }.font(.caption).disabled(ai.endpoint.isEmpty)
+            Button("Forget gateway token") { store.perform { try KeychainVault.save("", endpoint: ai.endpoint); ai.chat.clear(); ai.status = "AI unconfigured · gateway token removed" } }.font(.caption).disabled(ai.endpoint.isEmpty)
             Picker("Provider", selection: $ai.provider) { Text("OpenAI").tag("openai"); Text("Anthropic").tag("anthropic"); Text("Google Gemini").tag("gemini"); Text("OpenAI-compatible").tag("compatible") }
                 .onChange(of: ai.provider) { _, provider in ai.model = ai.providers[provider]?.first ?? "" }
             if let models = ai.providers[ai.provider], !models.isEmpty { Picker("Model", selection: $ai.model) { ForEach(models, id: \.self) { Text($0).tag($0) } } }
@@ -206,7 +206,7 @@ struct SettingsView: View {
             }.buttonStyle(.bordered)
             StatusLabel(text: ai.status, icon: ai.status.hasPrefix("Provider connection verified") ? "checkmark.shield" : "link")
             if let usage = ai.usage { Text("Gateway usage: \(usage.used)/\(usage.limit) requests for \(usage.day.isEmpty ? "today" : usage.day)").font(.caption).foregroundStyle(Palette.muted) }
-            Text("Generation sends only the selected subject and session settings. Feedback sends only the current question, your answer, hints, and mode. Provider API keys stay on your server; the gateway token stays in this device’s Keychain. Provider API access is billed separately from consumer chatbot subscriptions. Connection tests can incur a small API charge.").font(.caption).foregroundStyle(Palette.muted)
+            Text("Generation sends only the selected subject and session settings. Feedback sends only the current question, your answer, hints, and mode. AI Chat sends your message and recent conversation to the same provider. Your gateway keeps the provider API keys. This device keeps its gateway token in Keychain. Provider API access is billed separately from consumer chatbot subscriptions. Connection tests can incur a small API charge.").font(.caption).foregroundStyle(Palette.muted)
         }
     }
 }

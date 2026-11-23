@@ -4,7 +4,7 @@ import Foundation
 import OSLog
 
 extension AppStore {
-    func publishWidget() {
+    func publishWidget(refreshExisting: Bool = false) {
         guard !isValidation, !isDemo, let file = WidgetSummary.location else { return }
         do {
             if profile.onboarded {
@@ -35,11 +35,14 @@ extension AppStore {
                                              isToday: date == today)
                 }
                 if let data = try? Data(contentsOf: file),
-                   (try? JSONDecoder().decode(WidgetSummary.self, from: data)) == summary { return }
-                try FileManager.default.createDirectory(at: file.deletingLastPathComponent(),
+                   (try? JSONDecoder().decode(WidgetSummary.self, from: data)) == summary {
+                    guard refreshExisting else { return }
+                } else {
+                    try FileManager.default.createDirectory(at: file.deletingLastPathComponent(),
                                                         withIntermediateDirectories: true,
                                                         attributes: [.posixPermissions: 0o700])
-                try JSONEncoder().encode(summary).write(to: file, options: .atomic)
+                    try JSONEncoder().encode(summary).write(to: file, options: .atomic)
+                }
             } else if FileManager.default.fileExists(atPath: file.path) {
                 try FileManager.default.removeItem(at: file)
             } else { return }

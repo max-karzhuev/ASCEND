@@ -10,7 +10,7 @@ The included local build does not have an iCloud container configured. It tracks
 
 Open ASCEND once. Control-click the desktop, choose **Edit Widgets**, search for **ASCEND**, and add **Tasks to Complete**, **Calendar Glow**, or **Today’s Progress**. Click **Done**. Clicking the task list opens Quests. Clicking the calendar opens Overview. The small and medium task lists show up to three titles, and the large list shows up to eight. A remaining count identifies additional tasks. Placement and refresh timing are managed by macOS. See [Apple’s widget guide](https://support.apple.com/guide/mac-help/add-and-customize-widgets-mchl52be5da5/mac).
 
-The widget uses the same theme and progression rules as the app. The app publishes a summary when history or the theme changes. If a new planning day starts while ASCEND is closed, the widget prompts you to open the app to refresh the daily plan. macOS can also apply its own desktop tint.
+The widget uses the same theme and progression rules as the app. The app publishes a summary when history or the theme changes. If a new planning day starts while ASCEND is closed, the widget prompts you to open the app to refresh the daily plan. macOS controls the desktop tint. For persistent full color, choose **System Settings → Desktop & Dock → Widgets → Dim widgets on desktop → Never**.
 
 ## Build from source
 
@@ -67,7 +67,7 @@ This integration reads dates and titles through EventKit. Calendar events stay s
 
 ## AI and notifications
 
-Core tracking never requires the gateway. Follow `Gateway/README.md` only when you want generated learning sessions. In the app, use the gateway token, **not a provider API key**.
+Core tracking never requires the gateway. Follow `Gateway/README.md` to enable AI Chat and generated learning sessions. If your gateway predates ASCEND 1.5, update its code or container and restart it with the same environment and quota storage. Open **AI Chat** from the Mac sidebar or the speech bubbles in the iPhone navigation bar. In the app, use the gateway token, **not a provider API key**.
 
 Enable reminders inside ASCEND to trigger Apple’s notification permission request. Only the selected delivery device schedules notifications. Task times, the 8 PM check-in, and the 6 PM Brainmaxing reminder use the shared planning timezone. The app schedules up to seven days ahead, capped at 60 pending requests. Open it periodically to refresh the queue. Focus, notification permissions, and OS delivery decisions still apply.
 

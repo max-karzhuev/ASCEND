@@ -20,6 +20,7 @@ A native, standalone SwiftUI app for macOS and iPhone. Quests, routines, real go
 - Numeric and weighted-milestone goals, linked quest contributions, editable manual contribution history, exact undo, levels, category XP, and ranks.
 - Explicit private CloudKit operation-log synchronization, durable pending changes, stable identities, deterministic field merging, persistent deletion/reset protection, account isolation, and honest exchange status.
 - Brainmaxing configuration, generated-session caching, persisted drafts/answers, graduated hints, local numerical/choice grading, online conceptual/proof/code feedback, review topics, reports, and distinct practice/assessment rewards. Generated code is never executed.
+- AI Chat in the Mac sidebar and the iPhone navigation bar uses the connected provider and model. Add today’s quests to a draft when you want help with your plan.
 - Authenticated Node gateway with separate OpenAI, Anthropic, Gemini, and OpenAI-compatible adapters, request/output limits, provider/model allowlists, bounded retry, cancellation, persisted usage limits, and public-endpoint restrictions.
 - Local notifications with a shared delivery-device preference, short onboarding, validated versioned JSON import/export, and explicit local/shared reset flows.
 

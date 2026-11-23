@@ -8,6 +8,8 @@ The local Mac build saves a separate widget summary at `~/Library/Application Su
 
 Local mode keeps tracking on the device. Enabling sync in a configured Cloud build sends the history to your private Apple CloudKit database. Brainmaxing sends session requests and individual answers needing online grading through your configured gateway to the chosen AI provider. The app stores the gateway token in the device Keychain.
 
+AI Chat keeps the current conversation in window memory. Sending shares your message and up to seven recent exchanges with your configured gateway and selected provider. **Add today’s quests** inserts quest titles and completion status into the editable draft. You decide what to send. Clearing the chat, closing the app, or changing the connection clears that conversation locally. The gateway briefly caches successful replies in memory for retries. Upstream retention depends on your provider.
+
 ## Deleting a quest
 
 Use the quest’s **…** menu to delete a single occurrence or the entire routine. One-time quests have a **Delete quest** action. The trash button under **Quests → Routines** also works for archived templates. Weekly targets offer deletion in their History menu. Review the scope in the confirmation dialog.

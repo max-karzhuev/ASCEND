@@ -5,8 +5,7 @@ struct TasksWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WidgetSummary.tasksKind, provider: Provider()) { entry in
             TasksWidgetView(entry: entry)
-                .foregroundStyle(.white)
-                .containerBackground(for: .widget) { Color(white: 0.075) }
+                .ascendWidgetSurface(entry.summary?.theme)
                 .widgetURL(URL(string: "ascend://widget/tasks"))
         }
         .configurationDisplayName("Tasks to Complete")
@@ -19,10 +18,12 @@ struct TasksWidgetView: View {
     let entry: Entry
     @Environment(\.widgetFamily) private var family
     var body: some View {
-        let accent = (entry.summary?.theme ?? .shadow).accent
+        let theme = entry.summary?.theme ?? .shadow
         VStack(alignment: .leading, spacing: 5) {
-            Label("Today’s quests", systemImage: "checklist")
-                .font(.headline).foregroundStyle(accent)
+            HStack(spacing: 6) {
+                WidgetSymbol(name: "checklist", theme: theme)
+                Text("Today’s quests").font(.headline).opacity(0.89)
+            }
             if let summary = entry.summary, let titles = summary.pendingTitles,
                let count = summary.pendingCount, entry.date < summary.expires {
                 if count == 0 {
@@ -32,8 +33,10 @@ struct TasksWidgetView: View {
                     let limit = family == .systemLarge ? 8 : 3
                     ForEach(Array(titles.prefix(limit).enumerated()), id: \.offset) { _, title in
                         HStack(spacing: 6) {
-                            Circle().strokeBorder(accent.opacity(0.8), lineWidth: 1).frame(width: 7, height: 7)
-                            Text(title).font(.subheadline).lineLimit(1)
+                            WidgetColorMark(size: CGSize(width: 9, height: 9)) {
+                                Circle().strokeBorder(theme.accent, lineWidth: 1.25).frame(width: 7, height: 7)
+                            }.accessibilityHidden(true)
+                            Text(title).font(.subheadline).lineLimit(1).opacity(0.85)
                         }.privacySensitive()
                     }
                     if count > limit { Text("+\(count - limit) more").font(.caption).foregroundStyle(.secondary) }

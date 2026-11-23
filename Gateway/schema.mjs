@@ -12,6 +12,21 @@ export const questionSchema = object({
 });
 export const sessionSchema = object({ questions: array(questionSchema) });
 export const gradeSchema = object({ correct: { type: 'boolean' }, feedback: string, reviewTopic: string });
+export const chatSchema = object({ reply: string });
+export function validateMessages(messages) {
+  if (!Array.isArray(messages) || messages.length < 1 || messages.length > 15 || messages.length % 2 !== 1) fail('Invalid conversation length');
+  for (const [index, message] of messages.entries()) {
+    exactKeys(message, ['role', 'content']);
+    if (message.role !== (index % 2 === 0 ? 'user' : 'assistant')) fail('Invalid conversation order');
+    text(message.content, message.role === 'user' ? 4000 : 8000, 'chat message');
+  }
+  return { messages };
+}
+export function validateReply(value) {
+  exactKeys(value, ['reply']);
+  text(value.reply, 8000, 'chat reply');
+}
+export const chatInstruction = 'You are the conversational assistant inside ASCEND, a personal improvement app. Respond naturally to the final user message using the supplied conversation for context. You only see what the user shared in this chat. You cannot read or change their quests, calendars or settings. Return your answer as the reply string in the requested JSON, within 8000 characters.';
 export const testSchema = object({ ok: { type: 'boolean' } });
 export function text(value, max, name, empty = false) {
   if (typeof value !== 'string' || value.length > max || (!empty && !value.trim())) fail(`Invalid ${name}`);

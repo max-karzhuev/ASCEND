@@ -26,7 +26,7 @@ for relative in resources:
     add('build:' + relative, f'isa = PBXBuildFile; fileRef = {ident("file:" + relative)};')
     refs.append(ident('file:' + relative)); resource_builds.append(ident('build:' + relative))
 add('product', 'isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ASCEND.app; sourceTree = BUILT_PRODUCTS_DIR;')
-widget_files = ['Widget/TodayWidget.swift', 'Widget/TasksWidget.swift', 'Widget/CalendarWidget.swift', 'App/CalendarGlow.swift', 'Shared/WidgetSummary.swift', 'Shared/ThemeColor.swift', 'Sources/AscendCore/Theme.swift']
+widget_files = ['Widget/WidgetAppearance.swift', 'Widget/TodayWidget.swift', 'Widget/TasksWidget.swift', 'Widget/CalendarWidget.swift', 'App/CalendarGlow.swift', 'Shared/WidgetSummary.swift', 'Shared/ThemeColor.swift', 'Sources/AscendCore/Theme.swift']
 widget_builds = []
 for path in widget_files:
     if path.startswith('Widget/'):

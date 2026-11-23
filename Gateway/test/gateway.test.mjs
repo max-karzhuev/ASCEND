@@ -89,10 +89,10 @@ test('quota survives restart and fails closed for corrupt persisted state',()=>{
 async function withServer(fn, options={}) {
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ascend-http-')); let calls=0;
   const quota=new Quota(dir,30,100);
-  const server=createGateway({token,providers:{openai:providerConfig},quota,transport:async()=>{calls++;if(options.beforeResponse) await options.beforeResponse();return {status:200,body:JSON.stringify(wrapper('openai',options.result || {questions:[question]}))};}});
+  const server=createGateway({token,providers:{openai:providerConfig},quota,transport:async(_url, _headers, wire)=>{calls++;options.inspect?.(wire);if(options.beforeResponse) await options.beforeResponse();return {status:200,body:JSON.stringify(wrapper('openai',options.result || {questions:[question]}))};}});
   server.listen(0,'127.0.0.1');await once(server,'listening');
   const base=`http://127.0.0.1:${server.address().port}`;
-  const post=(body,auth=token)=>fetch(base+'/v1/session',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${auth}`},body:JSON.stringify(body)});
+  const post=(body,auth=token,route='/v1/session')=>fetch(base+route,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${auth}`},body:JSON.stringify(body)});
   try {await fn({base,post,quota,calls:()=>calls});} finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));fs.rmSync(dir,{recursive:true,force:true});}
 }
 const request={requestID:'fixture-request',provider:'openai',model:'fixture-model',config};
@@ -127,3 +127,27 @@ test('HTTP rejects oversized requests and malformed provider output',()=>withSer
   assert.equal((await post({...request,config:{...config,subtopic:'x'.repeat(70000)}})).status,413);
   const response=await post(request);assert.equal(response.status,502);const body=await response.json();assert.equal(body.error.code,'invalid_provider_response');
 },{result:{questions:[{...question,answer:'broken'}]}}));
+
+test('chat uses the selected provider, preserves conversation order and validates before charging quota', () => withServer(async ({post, calls}) => {
+  const messages = [{role:'user', content:'I have twenty minutes.'}, {role:'assistant', content:'What is due?'}, {role:'user', content:'A quiz tomorrow.'}];
+  const body = {requestID:'chat-1', provider:'openai', model:'fixture-model', messages};
+  const chat = value => post(value, token, '/v1/chat');
+  assert.equal((await post(body, 'wrong', '/v1/chat')).status, 401);
+  for (const invalid of [[], messages.slice(0, 2), [{role:'system', content:'Different role'}], [{role:'user', content:' '}], [{role:'user', content:'x'.repeat(4001)}]]) {
+    assert.equal((await chat({...body, messages:invalid})).status, 400);
+  }
+  assert.equal(calls(), 0);
+  const response = await chat(body);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {reply:'Try a practice quiz.'});
+  assert.equal((await chat(body)).status, 200);
+  assert.equal(calls(), 1);
+}, {result:{reply:'Try a practice quiz.'}, inspect: wire => {
+  const upstream = JSON.parse(wire);
+  assert.equal(upstream.model, 'fixture-model');
+  assert.deepEqual(JSON.parse(upstream.input).messages.map(m => m.content), ['I have twenty minutes.', 'What is due?', 'A quiz tomorrow.']);
+}}));
+test('chat rejects a malformed provider reply', () => withServer(async ({post}) => {
+  const response = await post({requestID:'chat-2', provider:'openai', model:'fixture-model', messages:[{role:'user',content:'Hi'}]}, token, '/v1/chat');
+  assert.equal(response.status, 502);
+}, {result:{reply:''}}));

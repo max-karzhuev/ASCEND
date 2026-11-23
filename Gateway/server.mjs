@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GatewayError, fail, text, exactKeys, validateConfig, validateQuestion, validateSession, validateGrade, sessionSchema, gradeSchema, testSchema, teachingInstruction, gradingInstruction } from './schema.mjs';
+import { GatewayError, fail, text, exactKeys, validateConfig, validateQuestion, validateSession, validateGrade, sessionSchema, gradeSchema, testSchema, teachingInstruction, gradingInstruction, chatInstruction, chatSchema, validateMessages, validateReply } from './schema.mjs';
 import { providersFromEnv, callProvider } from './providers.mjs';
 
 export class Quota {
@@ -53,10 +53,10 @@ export function createGateway({token, providers, quota, transport, delay}) {
     try {
       if (!authenticate(req,token)) throw new GatewayError(401,'authentication','A valid ASCEND gateway token is required');
       if (req.method === 'GET' && req.url === '/v1/config') return respond(200, {providers: Object.fromEntries(Object.entries(providers).map(([k,v]) => [k,v.models])), usage: { used: quota.state.used, limit: quota.dayLimit, day: quota.state.day }, providerTested: false});
-      if (req.method !== 'POST' || !['/v1/session','/v1/grade','/v1/test'].includes(req.url)) throw new GatewayError(404,'not_found','Unknown endpoint');
+      if (req.method !== 'POST' || !['/v1/session','/v1/grade','/v1/test','/v1/chat'].includes(req.url)) throw new GatewayError(404,'not_found','Unknown endpoint');
       if (!req.headers['content-type']?.startsWith('application/json')) throw new GatewayError(415,'content_type','Use application/json');
       const body = await readJSON(req);
-      exactKeys(body, ['requestID','provider','model', ...(req.url === '/v1/session' ? ['config'] : req.url === '/v1/grade' ? ['question','answer','hintsUsed','mode'] : [])]);
+      exactKeys(body, ['requestID','provider','model', ...(req.url === '/v1/session' ? ['config'] : req.url === '/v1/grade' ? ['question','answer','hintsUsed','mode'] : req.url === '/v1/chat' ? ['messages'] : [])]);
       text(body.requestID,100,'request ID'); text(body.model,100,'model'); text(body.provider,30,'provider');
       const config = providers[body.provider];
       if (!config || !config.models.includes(body.model)) throw new GatewayError(503,'unconfigured','This provider/model is not configured on the gateway');
@@ -64,6 +64,8 @@ export function createGateway({token, providers, quota, transport, delay}) {
       if (req.url === '/v1/session') {
         input = validateConfig(body.config); schema = sessionSchema; system = teachingInstruction;
         validate = value => validateSession(value, body.config.count);
+      } else if (req.url === '/v1/chat') {
+        input = validateMessages(body.messages); schema = chatSchema; system = chatInstruction; validate = validateReply;
       } else if (req.url === '/v1/grade') {
         validateQuestion(body.question); text(body.answer,12000,'answer');
         if (!Number.isInteger(body.hintsUsed) || body.hintsUsed < 0 || body.hintsUsed > 3 || !['practice','assessment'].includes(body.mode)) fail('Invalid attempt settings');
@@ -84,7 +86,7 @@ export function createGateway({token, providers, quota, transport, delay}) {
       if (busy >= 2) throw new GatewayError(429,'concurrency','Two provider requests are already running');
       quota.consume(); busy++; counted = true; activeID = body.requestID; inFlight.add(activeID);
       const result = await callProvider({provider:body.provider,config,model:body.model,system,input,schema,signal:abort.signal,transport,delay});
-      try { validate(result); } catch { throw new GatewayError(502,'invalid_provider_response','The provider returned a response that failed validation. Nothing was graded.'); }
+      try { validate(result); } catch { throw new GatewayError(502,'invalid_provider_response','The provider returned a response that failed validation.'); }
       if (cache.size >= 100) cache.delete(cache.keys().next().value);
       cache.set(body.requestID,{hash,result,expires:Date.now()+5*60*1000});
       respond(200,result);
