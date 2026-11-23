@@ -8,12 +8,12 @@ enum Destination: String, CaseIterable, Identifiable {
     var icon: String { switch self { case .overview: "square.grid.2x2"; case .quests: "checklist"; case .goals: "scope"; case .brain: "brain.head.profile"; case .chat: "bubble.left.and.bubble.right"; case .puzzles: "puzzlepiece.extension"; case .activity: "chart.bar.xaxis"; case .settings: "slider.horizontal.3" } }
 }
 enum SheetRoute: Identifiable {
-    case newQuest, quest(Quest), occurrence(Occurrence), newGoal, goalEdit(Goal), goal(Goal), day(String), session(LearningSession, index: Int = 0), activity, chat, calendar
+    case newQuest, quest(Quest), occurrence(Occurrence), newGoal, goalEdit(Goal), goal(Goal), day(String), session(LearningSession, index: Int = 0), activity, chat, calendar, mentalMath(quickStart: Bool)
     var id: String {
         switch self {
         case .newQuest: "newQuest"; case .quest(let q): "edit\(q.id)"; case .occurrence(let o): "occurrence\(o.id)"
         case .newGoal: "newGoal"; case .goalEdit(let g): "editGoal\(g.id)"; case .goal(let g): "goal\(g.id)"
-        case .day(let d): "day\(d)"; case .session(let s, let index): "session\(s.id)-\(index)"; case .activity: "activity"; case .chat: "chat"; case .calendar: "calendar"
+        case .day(let d): "day\(d)"; case .session(let s, let index): "session\(s.id)-\(index)"; case .activity: "activity"; case .chat: "chat"; case .calendar: "calendar"; case .mentalMath(let quickStart): "math-\(quickStart)"
         }
     }
 }
@@ -139,6 +139,7 @@ struct RootView: View {
                 case .session(let session, let index): SessionView(sessionID: session.id, initialIndex: index)
                 case .activity: ActivityView()
                 case .chat: ChatView(isSheet: true)
+                case .mentalMath(let quickStart): MentalMathView(settings: store.mentalMath.settings, quickStart: quickStart)
                 case .calendar:
                     PageScroll { CalendarCard() }
                         .navigationTitle("Consistency calendar")
@@ -190,7 +191,7 @@ struct RootView: View {
         case .quests: QuestsView()
         case .goals: GoalsView()
         case .brain: BrainView()
-        case .puzzles: PageScroll { PuzzleFeedCard() }
+        case .puzzles: PageScroll { PuzzleFeedCard(); MentalMathCard() }
         case .chat: ChatView()
         case .activity: ActivityView()
         case .settings: SettingsView()

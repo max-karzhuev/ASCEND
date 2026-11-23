@@ -31,12 +31,14 @@ struct OverviewView: View {
                         }.frame(maxWidth: .infinity)
                         VStack(spacing: 18) {
                             PuzzleFeedCard()
+                            MentalMathCard()
                             homeChat
                         }.frame(maxWidth: .infinity)
                     }
                 } else {
                     todaysQuests
                     PuzzleFeedCard()
+                    MentalMathCard()
                     homeChat
                     goalsCard
                     if !agenda.selected.isEmpty { AgendaCard(compact: true) }

@@ -162,7 +162,7 @@ struct SettingsView: View {
                 Button("Clear local data on this device", role: .destructive) { confirmLocal = true }
                 Button("Reset shared history everywhere", role: .destructive) { confirmShared = true }
             }
-            Text("ASCEND · 1.6\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
+            Text("ASCEND · 1.7\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
         }.onAppear { name = store.profile.name; zone = store.planning.zone }
             .fileExporter(isPresented: $exporting, document: document, contentType: .json, defaultFilename: "ASCEND-\(store.today)") { result in if case .failure(let error) = result { store.error = error.localizedDescription } }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in

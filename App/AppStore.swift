@@ -27,6 +27,7 @@ import Observation
     var clockNow = Date()
     let container: ModelContainer
     let context: ModelContext
+    private(set) var mentalMath = MentalMathRecord()
     let homePuzzles = HomePuzzleLoader()
     var didChange: (() -> Void)?
     var today: String { planning.day(clockNow) }
@@ -53,7 +54,17 @@ import Observation
         ledger = Ledger(changes: try context.fetch(FetchDescriptor<StoredChange>()).map { try JSONDecoder().decode(Change.self, from: $0.payload) })
         if let saved = metadataString("actor") { actor = saved }
         else { try setMetadata("actor", string: actor) }
+        if let data = metadata("mentalMath"), let record = try? JSONDecoder().decode(MentalMathRecord.self, from: data), record.settings.isValid {
+            mentalMath = record
+        }
         // No seed progress. Profile/category defaults are written only after onboarding.
+    }
+    func saveMentalMath(settings: MentalMathSettings? = nil, result: MentalMathRecord.Result? = nil) throws {
+        var record = mentalMath
+        if let settings { record.settings = settings }
+        if let result { record.last = result }
+        try setMetadata("mentalMath", data: JSONEncoder().encode(record))
+        mentalMath = record
     }
     func perform(_ action: () throws -> Void) { do { try action() } catch { self.error = error.localizedDescription } }
     func metadata(_ key: String) -> Data? { (try? context.fetch(FetchDescriptor<StoredMetadata>()))?.first { $0.key == key }?.value }
@@ -189,7 +200,7 @@ import Observation
         do {
             for row in try context.fetch(FetchDescriptor<StoredChange>()) { context.delete(row) }
             for row in try context.fetch(FetchDescriptor<StoredMetadata>()) { context.delete(row) }
-            try context.save(); ledger = Ledger(); actor = UUID().uuidString; try setMetadata("actor", string: actor)
+            try context.save(); ledger = Ledger(); mentalMath = MentalMathRecord(); actor = UUID().uuidString; try setMetadata("actor", string: actor)
         }
         catch { context.rollback(); throw error }
         #if os(macOS)
