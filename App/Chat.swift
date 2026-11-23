@@ -60,6 +60,7 @@ struct ChatMessage: Identifiable {
 
 struct ChatView: View {
     var isSheet = false
+    var embedded = false
     @Environment(AIClient.self) private var ai
     @Environment(AppStore.self) private var store
     @Environment(NavigationState.self) private var navigation
@@ -80,16 +81,22 @@ struct ChatView: View {
                     Button { confirmClear = true } label: { Label("Clear chat", systemImage: "trash").labelStyle(.iconOnly) }
                         .help("Clear chat")
                 }
+                if embedded {
+                    Button { navigation.sheet = .chat } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    }.accessibilityLabel("Expand AI Chat")
+                }
                 if isSheet { Button("Done") { navigation.sheet = nil } }
             }.padding()
             Divider()
+            if !embedded || ai.configured {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         if chat.history.isEmpty && chat.pending == nil {
                             Text("What would you like to work on?").font(.title3.weight(.semibold))
-                            Text("Ask for a study plan, talk through a goal, or add today’s quests to your message.")
-                                .font(.callout).foregroundStyle(Palette.muted)
+                            if !embedded { Text("Ask for a study plan, talk through a goal, or add today’s quests to your message.")
+                                .font(.callout).foregroundStyle(Palette.muted) }
                         }
                         ForEach(chat.history) { message in bubble(message) }
                         if let message = chat.pending {
@@ -102,8 +109,9 @@ struct ChatView: View {
                 .onChange(of: chat.history.count) { proxy.scrollTo("end", anchor: .bottom) }
                 .onChange(of: chat.pending?.id) { proxy.scrollTo("end", anchor: .bottom) }
                 .onAppear { proxy.scrollTo("end", anchor: .bottom) }
-            }
+            }.frame(height: embedded ? 118 : nil)
             Divider()
+            }
             VStack(alignment: .leading, spacing: 10) {
                 if ai.configured {
                     if let error = chat.error { Text(error).font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
@@ -130,8 +138,8 @@ struct ChatView: View {
                 }
             }.padding()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Palette.background).tint(accent)
+        .frame(maxWidth: .infinity, maxHeight: embedded ? nil : .infinity, alignment: .topLeading)
+        .background(embedded ? Palette.surface : Palette.background).tint(accent)
         .confirmationDialog("Clear this conversation?", isPresented: $confirmClear) {
             Button("Clear chat", role: .destructive) { chat.clear() }
         }

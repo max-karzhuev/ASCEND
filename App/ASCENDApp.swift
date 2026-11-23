@@ -2,18 +2,18 @@ import SwiftUI
 import EventKit
 
 enum Destination: String, CaseIterable, Identifiable {
-    case overview, quests, goals, brain, chat, activity, settings
+    case overview, chat, puzzles, quests, goals, brain, activity, settings
     var id: String { rawValue }
     var title: String { switch self { case .overview: "Overview"; case .brain: "Brainmaxing"; case .chat: "AI Chat"; default: rawValue.capitalized } }
-    var icon: String { switch self { case .overview: "square.grid.2x2"; case .quests: "checklist"; case .goals: "scope"; case .brain: "brain.head.profile"; case .chat: "bubble.left.and.bubble.right"; case .activity: "chart.bar.xaxis"; case .settings: "slider.horizontal.3" } }
+    var icon: String { switch self { case .overview: "square.grid.2x2"; case .quests: "checklist"; case .goals: "scope"; case .brain: "brain.head.profile"; case .chat: "bubble.left.and.bubble.right"; case .puzzles: "puzzlepiece.extension"; case .activity: "chart.bar.xaxis"; case .settings: "slider.horizontal.3" } }
 }
 enum SheetRoute: Identifiable {
-    case newQuest, quest(Quest), occurrence(Occurrence), newGoal, goalEdit(Goal), goal(Goal), day(String), session(LearningSession), activity, chat
+    case newQuest, quest(Quest), occurrence(Occurrence), newGoal, goalEdit(Goal), goal(Goal), day(String), session(LearningSession, index: Int = 0), activity, chat, calendar
     var id: String {
         switch self {
         case .newQuest: "newQuest"; case .quest(let q): "edit\(q.id)"; case .occurrence(let o): "occurrence\(o.id)"
         case .newGoal: "newGoal"; case .goalEdit(let g): "editGoal\(g.id)"; case .goal(let g): "goal\(g.id)"
-        case .day(let d): "day\(d)"; case .session(let s): "session\(s.id)"; case .activity: "activity"; case .chat: "chat"
+        case .day(let d): "day\(d)"; case .session(let s, let index): "session\(s.id)-\(index)"; case .activity: "activity"; case .chat: "chat"; case .calendar: "calendar"
         }
     }
 }
@@ -106,7 +106,7 @@ struct RootView: View {
             else {
                 #if os(macOS)
                 NavigationSplitView {
-                    sidebar.navigationSplitViewColumnWidth(min: 190, ideal: 215, max: 240)
+                    ScrollView { sidebar }.background(Palette.surface.opacity(0.6)).navigationSplitViewColumnWidth(min: 190, ideal: 215, max: 240)
                 } detail: {
                     screen(navigation.destination)
                         .toolbar {
@@ -136,9 +136,13 @@ struct RootView: View {
                 case .goalEdit(let goal): GoalEditor(original: goal)
                 case .goal(let goal): GoalDetail(goalID: goal.id)
                 case .day(let day): DayDetail(day: day)
-                case .session(let session): SessionView(sessionID: session.id)
+                case .session(let session, let index): SessionView(sessionID: session.id, initialIndex: index)
                 case .activity: ActivityView()
                 case .chat: ChatView(isSheet: true)
+                case .calendar:
+                    PageScroll { CalendarCard() }
+                        .navigationTitle("Consistency calendar")
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { navigation.sheet = nil } } }
                 }
             }.editorFrame().tint(store.profile.theme.accent).preferredColorScheme(.dark)
         }
@@ -186,6 +190,7 @@ struct RootView: View {
         case .quests: QuestsView()
         case .goals: GoalsView()
         case .brain: BrainView()
+        case .puzzles: PageScroll { PuzzleFeedCard() }
         case .chat: ChatView()
         case .activity: ActivityView()
         case .settings: SettingsView()

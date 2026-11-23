@@ -78,7 +78,11 @@ struct SessionView: View {
     @Environment(AIClient.self) private var ai
     @Environment(\.dismiss) private var dismiss
     var sessionID: String
-    @State private var index = 0
+    @State private var index: Int
+    init(sessionID: String, initialIndex: Int = 0) {
+        self.sessionID = sessionID
+        _index = State(initialValue: initialIndex)
+    }
     @State private var draft = ""
     @State private var grading = false
     @State private var gradeTask: Task<Void, Never>?

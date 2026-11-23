@@ -162,7 +162,7 @@ struct SettingsView: View {
                 Button("Clear local data on this device", role: .destructive) { confirmLocal = true }
                 Button("Reset shared history everywhere", role: .destructive) { confirmShared = true }
             }
-            Text("ASCEND · 1.5\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
+            Text("ASCEND · 1.6\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
         }.onAppear { name = store.profile.name; zone = store.planning.zone }
             .fileExporter(isPresented: $exporting, document: document, contentType: .json, defaultFilename: "ASCEND-\(store.today)") { result in if case .failure(let error) = result { store.error = error.localizedDescription } }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
@@ -206,7 +206,7 @@ struct SettingsView: View {
             }.buttonStyle(.bordered)
             StatusLabel(text: ai.status, icon: ai.status.hasPrefix("Provider connection verified") ? "checkmark.shield" : "link")
             if let usage = ai.usage { Text("Gateway usage: \(usage.used)/\(usage.limit) requests for \(usage.day.isEmpty ? "today" : usage.day)").font(.caption).foregroundStyle(Palette.muted) }
-            Text("Generation sends only the selected subject and session settings. Feedback sends only the current question, your answer, hints, and mode. AI Chat sends your message and recent conversation to the same provider. Your gateway keeps the provider API keys. This device keeps its gateway token in Keychain. Provider API access is billed separately from consumer chatbot subscriptions. Connection tests can incur a small API charge.").font(.caption).foregroundStyle(Palette.muted)
+            Text("The home puzzle feed requests three puzzles for the active Brainmaxing topic once per planning day. Choose General in the feed for offline play. Generation sends the subject and session settings. Feedback sends only the current question, your answer, hints, and mode. AI Chat sends your message and recent conversation to the same provider. Your gateway keeps the provider API keys. This device keeps its gateway token in Keychain. Provider API access is billed separately from consumer chatbot subscriptions. Connection tests can incur a small API charge.").font(.caption).foregroundStyle(Palette.muted)
         }
     }
 }

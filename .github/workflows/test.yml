@@ -1,4 +1,4 @@
-name: Tests
+name: Tests and Apple builds
 
 on: [push, pull_request]
 
@@ -6,11 +6,24 @@ permissions:
   contents: read
 
 jobs:
-  core:
+  apple:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify checked-in project membership
+        run: |
+          python3 Scripts/generate_project.py
+          git diff --exit-code -- ASCEND.xcodeproj
       - run: swift test
+      - name: Compile the macOS app and widgets
+        run: ./Scripts/build-local.sh
+      - name: Verify the local app signature
+        run: codesign --verify --deep --strict build/mac/Build/Products/Release/ASCEND.app
+      - name: Compile for iPhone Simulator
+        run: |
+          xcodebuild -project ASCEND.xcodeproj -scheme ASCEND \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build
   gateway:
     runs-on: ubuntu-latest
     steps:

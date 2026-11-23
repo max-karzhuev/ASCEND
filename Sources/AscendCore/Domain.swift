@@ -149,6 +149,7 @@ public struct Question: Codable, Equatable, Identifiable, Sendable {
 public struct LearningSession: Codable, Equatable, Identifiable, Sendable {
     public var id = UUID().uuidString
     public var config: LearningConfig
+    public var isHomePuzzleSet: Bool?
     public var questions: [Question]
     public var day: String
     public var provider: String

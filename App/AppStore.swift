@@ -27,6 +27,7 @@ import Observation
     var clockNow = Date()
     let container: ModelContainer
     let context: ModelContext
+    let homePuzzles = HomePuzzleLoader()
     var didChange: (() -> Void)?
     var today: String { planning.day(clockNow) }
     var planning: Planning { Planning(zone: ledger.effectiveZone(at: clockNow)) }

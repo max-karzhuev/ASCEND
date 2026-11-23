@@ -4,7 +4,7 @@ A native, standalone SwiftUI app for macOS and iPhone. Quests, routines, real go
 
 **Run ASCEND from source.** Open `ASCEND.xcodeproj`, select **ASCEND → My Mac**, and click Run. Quests, goals, and the calendar work immediately in local mode.
 
-**Open the packaged Mac app.** In the local project folder, open `Downloads/ASCEND.app`. The portable download is `Downloads/ASCEND-Mac.zip`. Unzip it and drag the app into Applications. The included build is locally signed. For public distribution, sign and notarize a distribution build, then attach the ZIP to a GitHub Release.
+**Open the local delivery.** The delivery folder includes `Downloads/ASCEND.app` and `Downloads/ASCEND-Mac.zip`. For a Git checkout, run `./Scripts/build-local.sh`. See the [project handoff](HANDOFF.md) for release packaging and signing.
 
 ![Example desktop widgets showing unfinished tasks and the calendar heatmap](Docs/Images/widgets.png)
 
@@ -20,6 +20,8 @@ A native, standalone SwiftUI app for macOS and iPhone. Quests, routines, real go
 - Numeric and weighted-milestone goals, linked quest contributions, editable manual contribution history, exact undo, levels, category XP, and ranks.
 - Explicit private CloudKit operation-log synchronization, durable pending changes, stable identities, deterministic field merging, persistent deletion/reset protection, account isolation, and honest exchange status.
 - Brainmaxing configuration, generated-session caching, persisted drafts/answers, graduated hints, local numerical/choice grading, online conceptual/proof/code feedback, review topics, reports, and distinct practice/assessment rewards. Generated code is never executed.
+- Home pairs a small glow calendar with level progress, quests and long-term goals with a playable puzzle feed, and an embedded AI chat. The layout stacks on iPhone.
+- Play 12 built-in reasoning puzzles offline. A connected AI prepares sets of three for selected Brainmaxing subjects and saves them for the day. Open any question directly and revisit its hints, answer and explanation from Brainmaxing.
 - AI Chat in the Mac sidebar and the iPhone navigation bar uses the connected provider and model. Add today’s quests to a draft when you want help with your plan.
 - Authenticated Node gateway with separate OpenAI, Anthropic, Gemini, and OpenAI-compatible adapters, request/output limits, provider/model allowlists, bounded retry, cancellation, persisted usage limits, and public-endpoint restrictions.
 - Local notifications with a shared delivery-device preference, short onboarding, validated versioned JSON import/export, and explicit local/shared reset flows.
@@ -55,6 +57,7 @@ The focused domain tests use `Package.swift`; the app target uses the same sourc
 
 ## Documentation
 
+- [Project handoff and GitHub release readiness](HANDOFF.md)
 - [Signing, CloudKit, and installation](Docs/SETUP.md)
 - [Architecture and conflict rules](Docs/ARCHITECTURE.md)
 - [Data export, reset, account changes, and physical deletion](Docs/DATA.md)
