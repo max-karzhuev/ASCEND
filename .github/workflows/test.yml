@@ -19,6 +19,18 @@ jobs:
         run: ./Scripts/build-local.sh
       - name: Verify the local app signature
         run: codesign --verify --deep --strict build/mac/Build/Products/Release/ASCEND.app
+      - name: Check app, widget and release-tag versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=build/mac/Build/Products/Release/ASCEND.app/Contents
+          widget="$app/PlugIns/ASCENDWidget.appex/Contents"
+          for key in CFBundleShortVersionString CFBundleVersion; do
+            test "$(plutil -extract "$key" raw "$app/Info.plist")" = "$(plutil -extract "$key" raw "$widget/Info.plist")"
+          done
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" == v* ]]; then
+            test "$GITHUB_REF_NAME" = "v$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")"
+          fi
       - name: Compile for iPhone Simulator
         run: |
           xcodebuild -project ASCEND.xcodeproj -scheme ASCEND \

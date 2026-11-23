@@ -1,5 +1,13 @@
 # Validation results
 
+## Mental math and release readiness, 23 November 2026
+
+Version 1.7 (build 9) passed the universal Mac Release and iPhone Simulator builds from a clean Git checkout. Regenerating the Xcode project produced no diff. All 41 Swift core tests and 21 gateway tests passed. The five new tests cover direct and inverse operations, operand bounds, invalid settings, partial answers, zero, replay, and the exact scoring deadline.
+
+A native Mac UI harness rendered both dashboard widths using synthetic data and opened the production drill view. The answer field took keyboard focus. Typing the first digit of 13 kept the problem in place. Completing the number cleared the field. A second answer advanced immediately using the same field. When five seconds elapsed, the device metadata contained the selected settings and a two-point score. iPhone Simulator verification covered compilation. The narrow layout render used the Mac SwiftUI host.
+
+The release-tag CI command passed locally for `v1.7` and rejected a deliberately mismatched tag. The app and embedded widget versions matched. Strict signature verification passed for the packaged app and a fresh extraction of its ZIP. The Mac binary includes arm64 and x86_64. Publication, a hosted Actions run and public notarization remain pending.
+
 ## Puzzle dashboard and release handoff, 23 November 2026
 
 Version 1.6, build 8, passed a fresh-checkout build for universal macOS Release and iPhone Simulator. Project regeneration produced no diff. All 36 Swift core tests and 21 gateway tests passed. The packaged app, embedded widget extension, and a fresh extraction of the Mac ZIP passed strict signature verification.

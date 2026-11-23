@@ -42,7 +42,7 @@ The drill runs offline. `AppStore` saves its settings and last completed score i
 
 ## GitHub and distribution
 
-- The workflow in `.github/workflows/test.yml` runs on pushes and pull requests. It checks project regeneration, runs the Swift and Node suites, compiles the Mac app with its widgets, verifies the bundle signature, and compiles the iPhone simulator app. It uses read-only repository permissions.
+- The workflow in `.github/workflows/test.yml` runs on pushes and pull requests. It checks project regeneration, runs the Swift and Node suites, compiles the Mac app with its widgets, verifies the bundle signature, checks app and widget version agreement (including the version on a release tag), and compiles the iPhone simulator app. It uses read-only repository permissions.
 - Local copies of the runnable app and the two ZIP files live in the ignored `Downloads/` directory of the delivery repository. A fresh checkout builds its own app. Use a tagged source archive for source distribution.
 - The local Mac package is ad hoc signed. For a public Mac download, sign the app and extension with the project's Developer ID identity, notarize and staple the app, then verify the extracted release ZIP on a separate Mac. Attach that ZIP to the GitHub Release for the matching source tag.
 - The repository owner still needs to choose the GitHub destination and visibility. If releasing under an open-source license, choose the intended license before inviting reuse. The repository currently contains no license grant.

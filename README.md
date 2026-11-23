@@ -6,7 +6,7 @@ A native, standalone SwiftUI app for macOS and iPhone. Quests, routines, real go
 
 **Open the local delivery.** The delivery folder includes `Downloads/ASCEND.app` and `Downloads/ASCEND-Mac.zip`. For a Git checkout, run `./Scripts/build-local.sh`. See the [project handoff](HANDOFF.md) for release packaging and signing.
 
-![Home with a compact calendar, quests, goals, physics puzzles and the chat composer, shown with sample data](Docs/Images/dashboard.png)
+![Home with a compact calendar, quests, goals, offline puzzles, mental math and AI chat, shown with sample data](Docs/Images/dashboard.png)
 
 ## What is implemented
 
