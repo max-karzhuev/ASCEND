@@ -15,11 +15,11 @@ struct MentalMathCard: View {
                 Label("Mental math", systemImage: "plus.forwardslash.minus").font(.title3.bold())
                 Spacer()
                 Button { nav.sheet = .mentalMath(quickStart: false) } label: { Image(systemName: "slider.horizontal.3") }
-                    .buttonStyle(.plain).accessibilityLabel("Configure mental math").help("Configure drill")
+                    .buttonStyle(TargetButton()).accessibilityLabel("Configure mental math").help("Configure drill")
             }
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Menu(record.settings.difficultyName) {
+                    Menu {
                         ForEach(Difficulty.allCases, id: \.self) { level in
                             Button(level.rawValue.capitalized) {
                                 var settings = store.mentalMath.settings
@@ -28,7 +28,8 @@ struct MentalMathCard: View {
                             }
                         }
                         Button("Customize ranges…") { nav.sheet = .mentalMath(quickStart: false) }
-                    }.fixedSize().accessibilityLabel("Difficulty, \(record.settings.difficultyName)")
+                    } label: { Text(record.settings.difficultyName).buttonTarget() }
+                    .menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Difficulty, \(record.settings.difficultyName)")
                     Text("\(drillDuration(record.settings.seconds))   ·   \(record.settings.symbols)").font(.headline)
                     if let last = record.last {
                         Text("Last round · \(last.score) correct in \(drillDuration(last.seconds))").font(.caption).foregroundStyle(Palette.muted)
@@ -153,7 +154,7 @@ struct MentalMathView: View {
                 HStack {
                     ForEach(Difficulty.allCases, id: \.self) { level in
                         Button(level.rawValue.capitalized) { applyPreset(level) }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.bordered).controlSize(.large)
                             .tint(selection?.difficulty == level ? accent : Palette.muted)
                             .accessibilityAddTraits(selection?.difficulty == level ? .isSelected : [])
                     }
@@ -233,7 +234,7 @@ struct MentalMathView: View {
                     if active.accept(input, at: now) { round = active; answer = "" }
                 }
             Text("Type the answer to advance.").font(.caption).foregroundStyle(Palette.muted)
-            Button("End round") { finish() }.buttonStyle(.bordered)
+            Button("End round") { finish() }.buttonStyle(.bordered).controlSize(.large)
         }.padding(.vertical, 8)
     }
 

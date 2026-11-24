@@ -70,7 +70,7 @@ Quest XP is 10/25/50 for easy/medium/hard. Level L requires `100 + 25 × (L − 
 
 Calendar brightness uses completed planned daily occurrences divided by planned daily occurrences. Each completion increases the tile’s fill and halo continuously with this fraction. Undo reverses that change. One-off and weekly sessions never inflate that denominator. A day with only extra activity has a dot and no invented percentage. Rest days have an outline; future dates remain unfilled; today’s date is underlined.
 
-A streak counts consecutive scheduled days that are fully complete. Rest days neither increment nor break it. An unfinished current day is ignored until it ends. Extra activity never substitutes for unfinished planned quests.
+A streak counts each planning date with a completed quest, submitted puzzle or Brainmaxing answer, finished mental math round, positive numeric goal entry, or checked milestone. History is reduced from active records, so undo and deletion can change earlier days. A day with no activity breaks the streak only after a scheduled day ends. Empty rest days are skipped and future dates are excluded. Calendar brightness still shows the fraction of planned quests completed.
 
 Goal totals are active completion quantities plus live manual contributions, or the sum of completed milestone weights. Undo removes the completion’s contribution once. Progress meters clamp visually at 100%, while the numeric value can exceed the target.
 

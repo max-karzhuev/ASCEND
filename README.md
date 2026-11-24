@@ -16,7 +16,7 @@ A native, standalone SwiftUI app for macOS and iPhone. Quests, routines, real go
 - A 30-day agenda for selected Apple calendars, Google accounts enabled in the system Calendar app, and Canvas LMS calendar subscriptions. [Connection instructions](Docs/SETUP.md#school-and-personal-calendars)
 - Confirmed deletion of individual occurrences or whole quests, including archived routines and logged weekly sessions. Archive remains available to preserve earned progress.
 - One-time, daily, selected-weekday, and weekly-session quests; individual-occurrence versus future-routine edits; archives; today/upcoming/completed/missed/category filters.
-- Immutable dated schedule snapshots, a continuous calendar glow, rest-day outlines, future-day protection, extra-activity markers, date details, planning timezone transitions, and scheduled-day streaks.
+- Immutable dated schedule snapshots, a continuous calendar glow, rest-day outlines, future-day protection, extra-activity markers, date details, planning timezone transitions, and streaks that count the first activity on each planning day.
 - Numeric and weighted-milestone goals, linked quest contributions, editable manual contribution history, exact undo, levels, category XP, and ranks.
 - Explicit private CloudKit operation-log synchronization, durable pending changes, stable identities, deterministic field merging, persistent deletion/reset protection, account isolation, and honest exchange status.
 - Brainmaxing configuration, generated-session caching, persisted drafts/answers, graduated hints, local numerical/choice grading, online conceptual/proof/code feedback, review topics, reports, and distinct practice/assessment rewards. Generated code is never executed.

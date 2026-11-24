@@ -79,7 +79,7 @@ struct PuzzleFeedCard: View {
                     HStack(spacing: 4) {
                         Text(request?.subject ?? "General").lineLimit(1)
                         Image(systemName: "chevron.down").font(.caption2)
-                    }.font(.caption.weight(.semibold)).foregroundStyle(store.profile.theme.accent)
+                    }.font(.caption.weight(.semibold)).foregroundStyle(store.profile.theme.accent).buttonTarget()
                 }.menuStyle(.borderlessButton).fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel("Choose puzzle topic")
             }
@@ -109,7 +109,7 @@ struct PuzzleFeedCard: View {
                             Image(systemName: done ? "checkmark.circle.fill" : "chevron.right")
                                 .foregroundStyle(done ? store.profile.theme.accent : Palette.muted).font(.caption)
                         }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 9).contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityValue(done ? "Answered" : "Open puzzle")
+                    }.buttonStyle(TargetButton()).accessibilityValue(done ? "Answered" : "Open puzzle")
                 }
             }
             if batch == nil {
@@ -118,7 +118,7 @@ struct PuzzleFeedCard: View {
                     Spacer()
                     Button("Previous", systemImage: "chevron.left") { collection -= 1 }.disabled(collection == 0)
                     Button("Next", systemImage: "chevron.right") { collection += 1 }.disabled(collection + 1 == general.count)
-                }.font(.caption).labelStyle(.iconOnly)
+                }.font(.caption).labelStyle(.iconOnly).buttonStyle(TargetButton())
             } else if let batch {
                 Label("\(batch.model) · \(batch.day)", systemImage: "sparkles").font(.caption).foregroundStyle(Palette.muted)
             }

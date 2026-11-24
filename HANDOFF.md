@@ -1,6 +1,6 @@
 # ASCEND project handoff
 
-ASCEND 1.8 (build 10) is a local-first SwiftUI app for macOS 14+ and iOS 17+. The repository contains the native app, Mac widget extension, dependency-free Swift core, and optional personal Node gateway. The app opens in local mode. Signing for a physical iPhone, private iCloud sync, and public Mac distribution each have their own setup in the [installation guide](Docs/SETUP.md).
+ASCEND 1.9 (build 11) is a local-first SwiftUI app for macOS 14+ and iOS 17+. The repository contains the native app, Mac widget extension, dependency-free Swift core, and optional personal Node gateway. The app opens in local mode. Signing for a physical iPhone, private iCloud sync, and public Mac distribution each have their own setup in the [installation guide](Docs/SETUP.md).
 
 ## Run a fresh checkout
 
@@ -14,6 +14,8 @@ open build/mac/Build/Products/Release/ASCEND.app
 ```
 
 For iPhone Simulator, select an installed iPhone simulator in Xcode or use the simulator build command in the [README](README.md). Run `python3 Scripts/generate_project.py` after adding Swift source files, and commit the generated project. The generator owns build settings and target membership. Apply project-wide configuration changes there too.
+
+Version 1.9 recalculates streaks from existing activity on launch and as history changes. The day-count rules live in Progression.streak. Shared button sizing lives in App/Design.swift. Quest completion covers the checkbox, title and whitespace up to the separate options menu.
 
 ## Where to make changes
 

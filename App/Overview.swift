@@ -44,9 +44,10 @@ struct OverviewView: View {
                     if !agenda.selected.isEmpty { AgendaCard(compact: true) }
                 }
                 HStack {
-                    Label("\(Progression.streak(ledger: store.ledger, now: Date())) day streak", systemImage: "flame.fill").font(.headline).foregroundStyle(store.profile.theme.accent)
+                    Label("\(Progression.streak(ledger: store.ledger, now: store.clockNow)) day streak", systemImage: "flame.fill").font(.headline).foregroundStyle(store.profile.theme.accent)
+                        .help("Your first completed quest, submitted answer, finished drill or goal progress counts for the day. Empty rest days keep your streak.")
                     Spacer()
-                    Button { nav.sheet = .activity } label: { Label("Activity", systemImage: "arrow.up.right") }.buttonStyle(.plain).font(.subheadline)
+                    Button { nav.sheet = .activity } label: { Label("Activity", systemImage: "arrow.up.right") }.buttonStyle(TargetButton()).font(.subheadline)
                 }.padding(.vertical, 2)
                 StatusLabel(text: sync.status, icon: store.syncEnabled ? "icloud" : "externaldrive")
             }
@@ -73,13 +74,13 @@ struct OverviewView: View {
             if store.todayQuests.isEmpty { EmptyCard(icon: "checklist", title: "Begin with one small step", message: "A daily ritual or a one-time ambition. Make it a quest.", actionTitle: "Create a quest") { nav.sheet = .newQuest } }
             else {
                 VStack(spacing: 0) { ForEach(Array(store.todayQuests.prefix(5))) { occurrence in QuestRow(occurrence: occurrence); if occurrence.id != store.todayQuests.prefix(5).last?.id { Divider().overlay(Palette.border) } } }
-                if store.todayQuests.count > 5 { Button("View all quests") { nav.destination = .quests }.buttonStyle(.plain).foregroundStyle(store.profile.theme.accent) }
+                if store.todayQuests.count > 5 { Button("View all quests") { nav.destination = .quests }.buttonStyle(TargetButton()).foregroundStyle(store.profile.theme.accent) }
             }
         }
     }
     var goalsCard: some View {
         Card {
-            HStack { Text("Long-term goals").font(.title3.bold()); Spacer(); Button { nav.sheet = .newGoal } label: { Image(systemName: "plus") }.buttonStyle(.plain).accessibilityLabel("New goal") }
+            HStack { Text("Long-term goals").font(.title3.bold()); Spacer(); Button { nav.sheet = .newGoal } label: { Image(systemName: "plus") }.buttonStyle(TargetButton()).accessibilityLabel("New goal") }
             if store.activeGoals.isEmpty { EmptyCard(icon: "scope", title: "Give your effort a direction", message: "Connect everyday actions to something that matters.", actionTitle: "Set a goal") { nav.sheet = .newGoal } }
             else { ForEach(Array(store.activeGoals.prefix(3))) { goal in GoalSummaryRow(goal: goal) } }
         }
@@ -154,7 +155,7 @@ struct CalendarCard: View {
                         }
                     }
                 }.padding(9).background(Palette.surface, in: RoundedRectangle(cornerRadius: 12))
-            }.buttonStyle(.plain).accessibilityLabel("Open full consistency calendar for \(monthTitle)")
+            }.buttonStyle(TargetButton()).accessibilityLabel("Open full consistency calendar for \(monthTitle)")
         } else {
             Card(padding: 18) {
                 ViewThatFits(in: .horizontal) {
@@ -172,7 +173,7 @@ struct CalendarCard: View {
                                 }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
                                     .foregroundStyle(ink(for: summary))
                                     .background { glow(for: summary) }
-                            }.buttonStyle(.plain)
+                            }.buttonStyle(TargetButton())
                         }
                     }
                 } else { VStack(spacing: 7) {
@@ -201,7 +202,7 @@ struct CalendarCard: View {
             Button { shift(-1) } label: { Image(systemName: "chevron.left") }.accessibilityLabel("Previous month")
             Text(monthTitle).font(.subheadline).monospacedDigit()
             Button { shift(1) } label: { Image(systemName: "chevron.right") }.accessibilityLabel("Next month")
-        }.buttonStyle(.plain)
+        }.buttonStyle(TargetButton())
     }
     func shift(_ amount: Int) { month = store.planning.calendar.date(byAdding: .month, value: amount, to: month)! }
     var monthTitle: String { let formatter = DateFormatter(); formatter.timeZone = store.planning.calendar.timeZone; formatter.dateFormat = "MMM yyyy"; return formatter.string(from: compact ? store.clockNow : month) }
@@ -251,19 +252,21 @@ struct QuestRow: View {
         let completed = store.ledger.completion(occurrence.id)?.active == true
         HStack(spacing: 12) {
             Button { store.toggle(occurrence) } label: {
-                Image(systemName: completed ? "checkmark.square.fill" : "square").font(.system(size: 25, weight: .light))
-                    .foregroundStyle(completed ? store.profile.theme.accent : Palette.muted).frame(width: 38, height: 44)
-            }.buttonStyle(.plain).disabled(occurrence.day > store.today)
+                HStack(spacing: 10) {
+                    Image(systemName: completed ? "checkmark.square.fill" : "square").font(.system(size: 25, weight: .light))
+                        .foregroundStyle(completed ? store.profile.theme.accent : Palette.muted).frame(width: 38, height: 44)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(occurrence.quest.title).font(.subheadline.weight(.medium)).strikethrough(completed).foregroundStyle(completed ? Palette.muted : .white)
+                        HStack(spacing: 7) {
+                            Text(store.categories.first { $0.id == occurrence.quest.category }?.name ?? occurrence.quest.category.capitalized)
+                            Text("·")
+                            Text("\(store.ledger.completion(occurrence.id)?.xp ?? occurrence.quest.difficulty.xp) XP")
+                        }.font(.caption2).foregroundStyle(Palette.muted)
+                    }
+                    Spacer(minLength: 4)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }.buttonStyle(TargetButton()).disabled(occurrence.day > store.today)
                 .accessibilityLabel("\(completed ? "Undo" : "Complete") \(occurrence.quest.title)")
-            VStack(alignment: .leading, spacing: 4) {
-                Text(occurrence.quest.title).font(.subheadline.weight(.medium)).strikethrough(completed).foregroundStyle(completed ? Palette.muted : .white)
-                HStack(spacing: 7) {
-                    Text(store.categories.first { $0.id == occurrence.quest.category }?.name ?? occurrence.quest.category.capitalized)
-                    Text("·")
-                    Text("\(store.ledger.completion(occurrence.id)?.xp ?? occurrence.quest.difficulty.xp) XP")
-                }.font(.caption2).foregroundStyle(Palette.muted)
-            }
-            Spacer(minLength: 4)
             Menu {
                 Button("Edit this occurrence") { nav.sheet = .occurrence(occurrence) }
                 if occurrence.quest.schedule != .once {
@@ -274,7 +277,7 @@ struct QuestRow: View {
                     Button("Archive routine") { store.perform { try store.archiveQuest(q) } }
                     Button(q.schedule == .once ? "Delete quest…" : "Delete entire routine…", role: .destructive) { removal = .routine(q) }
                 }
-            } label: { Image(systemName: "ellipsis").frame(width: 24, height: 35).foregroundStyle(Palette.muted) }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Options for \(occurrence.quest.title)")
+            } label: { Image(systemName: "ellipsis").buttonTarget().foregroundStyle(Palette.muted) }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Options for \(occurrence.quest.title)")
         }.padding(.vertical, 6).modifier(QuestRemovalConfirmation(removal: $removal))
     }
 }
@@ -288,6 +291,6 @@ struct GoalSummaryRow: View {
                 HStack { Text(goal.title).font(.subheadline.weight(.medium)); Spacer(); Text("\(Int(Progression.goalRatio(goal, ledger: store.ledger) * 100))%").font(.caption.monospacedDigit()).foregroundStyle(Palette.muted) }
                 Meter(value: Progression.goalRatio(goal, ledger: store.ledger), height: 6)
             }.padding(.vertical, 5)
-        }.buttonStyle(.plain)
+        }.buttonStyle(TargetButton())
     }
 }

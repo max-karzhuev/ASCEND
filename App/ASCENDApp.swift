@@ -183,7 +183,7 @@ struct RootView: View {
             }.padding(.horizontal, 14).padding(.vertical, 14)
                 .foregroundStyle(navigation.destination == item ? Color.white : Palette.muted)
                 .background(navigation.destination == item ? store.profile.theme.deep : .clear, in: RoundedRectangle(cornerRadius: 10))
-        }.buttonStyle(.plain).accessibilityAddTraits(navigation.destination == item ? .isSelected : [])
+        }.buttonStyle(TargetButton()).accessibilityAddTraits(navigation.destination == item ? .isSelected : [])
     }
     @ViewBuilder func screen(_ destination: Destination) -> some View {
         switch destination {

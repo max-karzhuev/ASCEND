@@ -45,14 +45,14 @@ struct BrainView: View {
                                 VStack(alignment: .leading, spacing: 5) { Text(session.config.subject).font(.headline); Text("\(session.config.subtopic.isEmpty ? session.config.ability : session.config.subtopic) · \(session.day)").font(.caption).foregroundStyle(Palette.muted) }
                                 Spacer(); Text("\(attempts.count)/\(session.questions.count)").font(.caption.monospacedDigit()); Image(systemName: "chevron.right").font(.caption)
                             }.padding(.vertical, 8)
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(TargetButton())
                     }
                 }
                 Card {
                     Text("Revisit & reinforce").font(.title3.bold())
                     let review = reviewTopics(sessions)
                     if review.isEmpty { Text("Topics to revisit will appear after feedback or hinted attempts.").font(.subheadline).foregroundStyle(Palette.muted) }
-                    ForEach(review, id: \.self) { topic in Button { config.subtopic = topic } label: { Label(topic, systemImage: "arrow.counterclockwise") }.buttonStyle(.plain).foregroundStyle(store.profile.theme.accent) }
+                    ForEach(review, id: \.self) { topic in Button { config.subtopic = topic } label: { Label(topic, systemImage: "arrow.counterclockwise") }.buttonStyle(TargetButton()).foregroundStyle(store.profile.theme.accent) }
                 }
             }
         }.onAppear { if !store.profile.subjects.contains(config.subject) { config.subject = store.profile.subjects.first ?? "Mathematics" } }
@@ -105,7 +105,7 @@ struct SessionView: View {
                         ForEach(question.options, id: \.self) { option in
                             Button { draft = option; saveDraft() } label: {
                                 HStack(alignment: .top) { Image(systemName: draft == option ? "largecircle.fill.circle" : "circle"); Text(option); Spacer(minLength: 0) }.padding(12).frame(maxWidth: .infinity, alignment: .leading).background(draft == option ? store.profile.theme.deep : Palette.background, in: RoundedRectangle(cornerRadius: 10))
-                            }.buttonStyle(.plain).disabled(attempt.submitted).accessibilityAddTraits(draft == option ? .isSelected : [])
+                            }.buttonStyle(TargetButton()).disabled(attempt.submitted).accessibilityAddTraits(draft == option ? .isSelected : [])
                         }
                     } else {
                         Text(question.kind == .numerical ? "Your numerical answer (use a decimal point)" : "Your reasoning").font(.caption).foregroundStyle(Palette.muted)
@@ -119,7 +119,7 @@ struct SessionView: View {
                         HStack {
                             Button("Submit answer") { submit() }.buttonStyle(AccentButton(color: store.profile.theme.accent)).disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.count > 12000)
                             Spacer()
-                            if attempt.hintsUsed < question.hints.count { Button("Hint \(attempt.hintsUsed + 1)", systemImage: "lightbulb") { var a = attempt; a.hintsUsed += 1; a.answer = draft; store.perform { try store.put(a, kind: .attempt, id: a.id, atomic: true) } }.buttonStyle(.plain).foregroundStyle(store.profile.theme.accent) }
+                            if attempt.hintsUsed < question.hints.count { Button("Hint \(attempt.hintsUsed + 1)", systemImage: "lightbulb") { var a = attempt; a.hintsUsed += 1; a.answer = draft; store.perform { try store.put(a, kind: .attempt, id: a.id, atomic: true) } }.buttonStyle(TargetButton()).foregroundStyle(store.profile.theme.accent) }
                         }
                     }
                     ForEach(Array(question.hints.prefix(attempt.hintsUsed).enumerated()), id: \.offset) { item in
@@ -150,7 +150,7 @@ struct SessionView: View {
                     Button(attempt.reported ? "Problem reported" : "Report a problem", systemImage: "flag") { reportText = attempt.report; reporting = true }.font(.caption)
                     Spacer()
                     Button("Next") { move(1) }.disabled(index + 1 >= session.questions.count || grading)
-                }.buttonStyle(.plain)
+                }.buttonStyle(TargetButton())
             } else { EmptyCard(icon: "book", title: "Session unavailable", message: "This session is no longer in your history.") }
         }.navigationTitle("Learning session").toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { saveDraft(); dismiss() } } }
             .onAppear { draft = attempt?.answer ?? "" }

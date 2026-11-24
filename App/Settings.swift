@@ -18,7 +18,7 @@ struct ThemePicker: View {
                         ZStack { Circle().fill(theme.accent).frame(width: 25, height: 25); if selection == theme { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.black) } }
                         Text(theme.rawValue.capitalized).font(.caption.weight(.medium)).foregroundStyle(.white)
                     }.frame(maxWidth: .infinity).padding(.vertical, 14).background(selection == theme ? theme.deep : Palette.background, in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).stroke(selection == theme ? theme.accent.opacity(0.65) : Palette.border))
-                }.buttonStyle(.plain).accessibilityLabel("\(theme.rawValue.capitalized) theme").accessibilityAddTraits(selection == theme ? .isSelected : [])
+                }.buttonStyle(TargetButton()).accessibilityLabel("\(theme.rawValue.capitalized) theme").accessibilityAddTraits(selection == theme ? .isSelected : [])
             }
         }
     }
@@ -59,7 +59,7 @@ struct OnboardingView: View {
                     }
                 }
                 HStack {
-                    if step > 0 { Button("Back") { step -= 1 }.buttonStyle(.plain) }
+                    if step > 0 { Button("Back") { step -= 1 }.buttonStyle(TargetButton()) }
                     Spacer()
                     Button(step < 2 ? "Continue →" : "Start ascending →") {
                         if step < 2 { step += 1 }
@@ -119,7 +119,7 @@ struct SettingsView: View {
             Card {
                 Text("Brainmaxing subjects").font(.title3.bold())
                 ForEach(store.profile.subjects, id: \.self) { subject in
-                    HStack { Text(subject); Spacer(); Button { var p = store.profile; p.subjects.removeAll { $0 == subject }; store.perform { try store.saveProfile(p) } } label: { Image(systemName: "minus.circle") }.buttonStyle(.plain).accessibilityLabel("Remove \(subject)") }
+                    HStack { Text(subject); Spacer(); Button { var p = store.profile; p.subjects.removeAll { $0 == subject }; store.perform { try store.saveProfile(p) } } label: { Image(systemName: "minus.circle") }.buttonStyle(TargetButton()).accessibilityLabel("Remove \(subject)") }
                 }
                 HStack { TextField("Add a subject", text: $newSubject).textFieldStyle(.roundedBorder); Button("Add") { let subject = newSubject.trimmingCharacters(in: .whitespacesAndNewlines); if !subject.isEmpty && !store.profile.subjects.contains(subject) { var p = store.profile; p.subjects.append(String(subject.prefix(120))); store.perform { try store.saveProfile(p) }; newSubject = "" } }.buttonStyle(.bordered) }
             }
@@ -162,7 +162,7 @@ struct SettingsView: View {
                 Button("Clear local data on this device", role: .destructive) { confirmLocal = true }
                 Button("Reset shared history everywhere", role: .destructive) { confirmShared = true }
             }
-            Text("ASCEND · 1.8\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
+            Text("ASCEND · 1.9\nXP represents activity credit, not certification or real-world competence.").font(.caption).foregroundStyle(Palette.muted)
         }.onAppear { name = store.profile.name; zone = store.planning.zone }
             .fileExporter(isPresented: $exporting, document: document, contentType: .json, defaultFilename: "ASCEND-\(store.today)") { result in if case .failure(let error) = result { store.error = error.localizedDescription } }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in

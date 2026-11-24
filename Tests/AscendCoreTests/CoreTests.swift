@@ -201,6 +201,65 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(Progression.streak(ledger: ledger, now: p.date("2026-03-09")), 1)
         XCTAssertEqual(Progression.streak(ledger: ledger, now: p.date("2026-03-10")), 0)
     }
+    func testStreakCountsPartialDaysOnceAndTracksUndo() throws {
+        let day = "2026-03-06", now = p.date(day)
+        let base = try plannedLedger(quest(), through: day)
+        let first = try XCTUnwrap(base.occurrences.first)
+        var second = first
+        second.id += "-second"
+        let plan = try base.merged(with: [op(second, kind: .occurrence, id: second.id)])
+        let partial = try complete(plan, ids: [first.id])
+        XCTAssertEqual(Progression.day(day, ledger: partial, today: day).ratio, 0.5)
+        XCTAssertEqual(Progression.streak(ledger: partial, now: now), 1)
+        let full = try complete(partial, ids: [second.id])
+        XCTAssertEqual(Progression.streak(ledger: full, now: now), 1)
+        var undone = Completion(occurrence: first)
+        undone.active = false
+        let reversed = try partial.merged(with: [op(undone, kind: .completion, id: first.id, clock: partial.maxClock + 1)])
+        XCTAssertEqual(Progression.streak(ledger: reversed, now: now), 0)
+        let removed = try partial.merged(with: [Change(actor: "A", clock: 20, kind: .occurrence, entityID: first.id, fields: [:], deleted: true)])
+        XCTAssertEqual(Progression.streak(ledger: removed, now: now), 0)
+    }
+
+    func testStreakCountsExtrasAndExcludesDraftsAndFutureDates() throws {
+        let friday = "2026-03-06", saturday = "2026-03-07", sunday = "2026-03-08"
+        let base = try plannedLedger(quest(.once), through: friday)
+        let extra = try complete(base, ids: base.occurrences.map(\.id))
+        let session = LearningSession(config: LearningConfig(), questions: [question()], day: saturday, provider: "local", model: "test")
+        var attempt = Attempt(session: session, question: question(), day: saturday)
+        let round = MentalMathCompletion(id: "round", day: sunday, seconds: 60, score: 0, difficulty: .hard)
+        let draft = try extra.merged(with: [op(attempt, kind: .attempt, id: attempt.id), op(round, kind: .mentalMathRound, id: round.id)])
+        XCTAssertEqual(Progression.streak(ledger: draft, now: p.date(saturday)), 1)
+        attempt.submitted = true
+        let history = try draft.merged(with: [op(attempt, kind: .attempt, id: attempt.id, clock: 8)])
+        XCTAssertEqual(Progression.streak(ledger: history, now: p.date(saturday)), 2)
+        XCTAssertEqual(Progression.streak(ledger: history, now: p.date(sunday)), 3)
+        let replay = try history.merged(with: history.changes)
+        XCTAssertEqual(Progression.streak(ledger: replay, now: p.date(sunday)), 3)
+    }
+
+    func testStreakCountsGoalProgressAndDropsUncheckedMilestones() throws {
+        let day = "2026-03-08", next = "2026-03-09"
+        let numeric = Goal()
+        var milestones = Goal()
+        milestones.kind = .milestones
+        let entry = Contribution(goalID: numeric.id, amount: 3, day: day, note: "")
+        let milestone = Milestone(title: "Finish outline")
+        milestones.milestones = [milestone]
+        let base = try plannedLedger(quest(.weekly), through: next).merged(with: [
+            op(numeric, kind: .goal, id: numeric.id), op(milestones, kind: .goal, id: milestones.id),
+            op(entry, kind: .contribution, id: entry.id)
+        ])
+        var check = MilestoneCheck(id: milestone.id, goalID: milestones.id, done: true)
+        var checked = try op(check, kind: .milestone, id: check.id)
+        checked.createdAt = p.date(next)
+        let finished = try base.merged(with: [checked])
+        XCTAssertEqual(Progression.streak(ledger: finished, now: p.date(next)), 2)
+        check.done = false
+        let undone = try finished.merged(with: [op(check, kind: .milestone, id: check.id, clock: 9)])
+        XCTAssertEqual(Progression.streak(ledger: undone, now: p.date(next)), 1)
+    }
+
     func testXPThresholdsAndRanks() {
         XCTAssertEqual(Progression.player(xp: 0).level, 1)
         XCTAssertEqual(Progression.player(xp: 99).intoLevel, 99)

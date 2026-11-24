@@ -219,7 +219,7 @@ struct GoalsView: View {
                         GoalSummaryRow(goal: g)
                         Text("\(Progression.goalValue(g, ledger: store.ledger).formatted()) / \(Progression.goalTarget(g).formatted()) \(g.kind == .numeric ? g.unit : "weighted points")").font(.caption).foregroundStyle(Palette.muted)
                         if !g.targetDay.isEmpty { Label("Target \(g.targetDay)", systemImage: "calendar").font(.caption).foregroundStyle(Palette.muted) }
-                        Button("View progress →") { nav.sheet = .goal(g) }.buttonStyle(.plain).foregroundStyle(store.profile.theme.accent).font(.subheadline)
+                        Button("View progress →") { nav.sheet = .goal(g) }.buttonStyle(TargetButton()).foregroundStyle(store.profile.theme.accent).font(.subheadline)
                     }
                 }
             }
@@ -248,7 +248,7 @@ struct GoalEditor: View {
                     TextField("Unit (workouts, hours, chapters…)", text: $goal.unit)
                 } else {
                     ForEach($goal.milestones) { $m in
-                        HStack { TextField("Milestone", text: $m.title); TextField("Weight", value: $m.weight, format: .number).frame(width: 60); Button { goal.milestones.removeAll { $0.id == m.id } } label: { Image(systemName: "minus.circle") }.buttonStyle(.plain).accessibilityLabel("Remove milestone") }
+                        HStack { TextField("Milestone", text: $m.title); TextField("Weight", value: $m.weight, format: .number).frame(width: 60); Button { goal.milestones.removeAll { $0.id == m.id } } label: { Image(systemName: "minus.circle") }.buttonStyle(TargetButton()).accessibilityLabel("Remove milestone") }
                     }
                     Button("Add milestone", systemImage: "plus") { goal.milestones.append(Milestone(title: "")) }
                     Text("Weights describe relative effort. Equal weights count each milestone equally.").font(.caption).foregroundStyle(.secondary)

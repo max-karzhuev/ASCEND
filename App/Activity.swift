@@ -8,7 +8,7 @@ struct ActivityView: View {
         PageScroll {
             ScreenHeader(eyebrow: "Look how far you’ve come", title: "Your activity", subtitle: "Every point has a story. Every day is another opportunity.")
             Card {
-                HStack { VStack(alignment: .leading, spacing: 8) { Eyebrow(text: "Lifetime activity"); Text("\(store.progress.lifetime) XP").font(.system(.largeTitle, design: .rounded, weight: .bold)).foregroundStyle(store.profile.theme.accent) }; Spacer(); VStack(alignment: .trailing, spacing: 8) { Eyebrow(text: "Consistency"); Text("\(Progression.streak(ledger: store.ledger, now: Date())) days").font(.title2.bold()) } }
+                HStack { VStack(alignment: .leading, spacing: 8) { Eyebrow(text: "Lifetime activity"); Text("\(store.progress.lifetime) XP").font(.system(.largeTitle, design: .rounded, weight: .bold)).foregroundStyle(store.profile.theme.accent) }; Spacer(); VStack(alignment: .trailing, spacing: 8) { Eyebrow(text: "Consistency"); Text("\(Progression.streak(ledger: store.ledger, now: store.clockNow)) days").font(.title2.bold()) } }
                 Chart(days, id: \.day) { day in BarMark(x: .value("Day", String(day.day.suffix(5))), y: .value("XP", day.xp)).foregroundStyle(store.profile.theme.accent.gradient).cornerRadius(4) }.frame(height: 180).chartXAxis { AxisMarks(values: .automatic(desiredCount: 5)) }.accessibilityLabel("Activity XP for the last fourteen days")
             }
             Card {

@@ -87,7 +87,7 @@ struct ChatView: View {
                     }.accessibilityLabel("Expand AI Chat")
                 }
                 if isSheet { Button("Done") { navigation.sheet = nil } }
-            }.padding()
+            }.buttonStyle(TargetButton()).padding()
             Divider()
             if !embedded || ai.configured {
             ScrollViewReader { proxy in
@@ -136,7 +136,7 @@ struct ChatView: View {
                 } else {
                     Button("Open Settings") { navigation.sheet = nil; navigation.destination = .settings }
                 }
-            }.padding()
+            }.controlSize(.large).padding()
         }
         .frame(maxWidth: .infinity, maxHeight: embedded ? nil : .infinity, alignment: .topLeading)
         .background(embedded ? Palette.surface : Palette.background).tint(accent)

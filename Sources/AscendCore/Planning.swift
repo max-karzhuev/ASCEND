@@ -148,14 +148,33 @@ public enum Progression {
                           brainSessions: Set(attempts.map(\.sessionID)).count, isFuture: day > today)
     }
     public static func streak(ledger: Ledger, now: Date) -> Int {
-        let p = Planning(zone: ledger.effectiveZone(at: now)), today = p.day(now)
-        let start = ledger.occurrences.map(\.day).min() ?? today
+        let today = Planning(zone: ledger.effectiveZone(at: now)).day(now)
+        var activeDays = Set(ledger.completions.map(\.day))
+        activeDays.formUnion(ledger.attempts.lazy.filter(\.submitted).map(\.day))
+        activeDays.formUnion(ledger.mathRounds.map(\.day))
+
+        let goals = Dictionary(uniqueKeysWithValues: ledger.goals.map { ($0.id, $0) })
+        for entry in ledger.values(Contribution.self, kind: .contribution)
+            where entry.amount > 0 && goals[entry.goalID]?.kind == .numeric {
+            activeDays.insert(entry.day)
+        }
+        for check in ledger.values(MilestoneCheck.self, kind: .milestone) where check.done {
+            guard let goal = goals[check.goalID], goal.kind == .milestones,
+                  goal.milestones.contains(where: { $0.id == check.id }) else { continue }
+            // Concurrent checks of the same milestone still represent one transition.
+            let operations = ledger.operations(.milestone, check.id)
+            let sinceUndo = operations.suffix(from: operations.lastIndex(where: { $0.fields["done"] == "false" }).map { $0 + 1 } ?? 0)
+            if let date = sinceUndo.first(where: { $0.fields["done"] == "true" })?.createdAt {
+                activeDays.insert(Planning(zone: ledger.effectiveZone(at: date)).day(date))
+            }
+        }
+
+        let plannedDays = ledger.occurrences.lazy.filter(\.planned).map(\.day)
+        let relevantDays = activeDays.union(plannedDays).filter { $0 <= today }
         var count = 0
-        for day in p.days(from: start, through: today).reversed() {
-            let s = self.day(day, ledger: ledger, today: today)
-            if s.planned == 0 { continue }
-            if s.completed == s.planned { count += 1 }
-            else if day != today { break }
+        for day in relevantDays.sorted(by: >) {
+            if activeDays.contains(day) { count += 1 }
+            else if day < today { break }
         }
         return count
     }

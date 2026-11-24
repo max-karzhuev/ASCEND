@@ -38,19 +38,30 @@ struct Card<Content: View>: View {
         VStack(alignment: .leading, spacing: 18) { content }.padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(LinearGradient(colors: [Palette.raised.opacity(0.72), Palette.surface], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: Palette.radius))
-            .overlay(RoundedRectangle(cornerRadius: Palette.radius).stroke(Palette.border, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: Palette.radius).stroke(Palette.border, lineWidth: 1).allowsHitTesting(false))
     }
 }
 struct Eyebrow: View {
     var text: String
     var body: some View { Text(text.uppercased()).font(.system(.caption2, design: .monospaced, weight: .semibold)).tracking(2).foregroundStyle(Palette.muted) }
 }
+extension View {
+    func buttonTarget() -> some View {
+        frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+    }
+}
+struct TargetButton: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.buttonTarget().opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
 struct AccentButton: ButtonStyle {
     var color: Color
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.font(.system(.subheadline, weight: .semibold)).padding(.horizontal, 18).padding(.vertical, 12)
+            .buttonTarget()
             .foregroundStyle(Color.black.opacity(0.88)).background(color.opacity(configuration.isPressed ? 0.75 : 1), in: RoundedRectangle(cornerRadius: 11))
-            .overlay(RoundedRectangle(cornerRadius: 11).stroke(Color.white.opacity(0.18), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 11).stroke(Color.white.opacity(0.18), lineWidth: 1).allowsHitTesting(false))
     }
 }
 struct Meter: View {
