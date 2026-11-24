@@ -1,5 +1,11 @@
 # Validation results
 
+## Button targets and activity streaks, 24 November 2026
+
+Version 1.9 (build 11) passed all 46 Swift core tests and 21 gateway tests. Coverage includes partial quest days, undo and deletion, one-time quests, drafts and submitted answers, timed drills, future dates, duplicate imports, and goal progress. The clean checkout built for iPhone Simulator and both Mac architectures. Regenerating the Xcode project produced no changes.
+
+A native Mac window with an in-memory profile accepted clicks in the empty part of a quest row, on its title and at the edge of its checkbox area. It also accepted clicks near the corner of a small icon button and in a primary button’s padding. A click just outside the icon target left the control untouched. The packaged app and its embedded widget passed strict signature verification before and after ZIP extraction.
+
 ## Mental math difficulty and round XP, 23 November 2026
 
 Version 1.8 (build 10) passed the universal Mac Release and iPhone Simulator builds from a clean checkout. All 43 Swift tests and 21 gateway tests passed. The new tests cover all three difficulty presets, custom ranges, timer and operation preservation, and fixed five-point rewards across scores, duplicate deliveries, backups and shared reset.
