@@ -1,5 +1,7 @@
 # ASCEND
 
+A self improvement tracking app. It can track your daily tasks, connects to the calendar, allows AI integration of your choice, has workout tracking widget, quitting counter, brain puzzles and more. Everything is customizable with aesthetic graphics. Stores all of the progress locally on your Mac/Iphone.
+
 A native, standalone SwiftUI app for macOS and iPhone. Quests, routines, real goal contributions, a consistency calendar, RPG-style progression, and provider-independent educational practice share one local-first history.
 
 **Run ASCEND from source.** Open `ASCEND.xcodeproj`, select **ASCEND → My Mac**, and click Run. Quests, goals, and the calendar work immediately in local mode.
