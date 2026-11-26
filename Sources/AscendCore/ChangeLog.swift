@@ -1,7 +1,7 @@
 import Foundation
 
 public enum EntityKind: String, Codable, CaseIterable, Sendable {
-    case profile, category, quest, revision, occurrence, completion, goal, contribution, milestone, session, attempt, mentalMathRound, timezone, reset
+    case profile, category, quest, revision, occurrence, completion, goal, contribution, milestone, session, attempt, mentalMathRound, quitHabit, quitCheckIn, workoutPlan, workoutLog, gymSettings, timezone, reset
 }
 /// Immutable operations. Lamport order is independent of wall-clock accuracy.
 public struct Change: Codable, Equatable, Identifiable, Sendable {
@@ -73,10 +73,12 @@ public struct Ledger: Sendable {
         guard !ops.isEmpty, !ops.contains(where: \.deleted) else { return nil }
         // Occurrence snapshots are first-writer-wins and atomic. Their first Lamport identity
         // freezes historical plans; explicit edits live in the separate quest/occurrence override.
-        if kind == .occurrence || kind == .mentalMathRound { return ops.first?.fields }
+        // The one exception is a workout plan edit, which marks its replacement as revised.
+        if kind == .occurrence { return (ops.last { $0.fields["revised"] == "true" } ?? ops.first)?.fields }
+        if kind == .mentalMathRound || kind == .workoutLog { return ops.first?.fields }
         // Completion and attempt submissions are atomic, so two devices cannot blend a
         // completion's reward with another operation's goal quantity or answer.
-        if kind == .completion { return ops.last?.fields }
+        if kind == .completion || kind == .quitCheckIn || kind == .workoutPlan { return ops.last?.fields }
         if kind == .attempt {
             // Drafts never unsubmit a previously submitted answer after an offline merge.
             var result = (ops.last(where: { $0.fields["submitted"] == "true" }) ?? ops.last)?.fields ?? [:]
@@ -198,6 +200,21 @@ public struct Archive: Codable {
                     guard round.id == id, UUID(uuidString: id) != nil, Planning.validDay(round.day),
                           round.score >= 0, MentalMathSettings.durations.contains(round.seconds)
                     else { throw DataError.invalid("Invalid mental math round") }
+                case .quitHabit:
+                    let habit = try Codec.decode(QuitHabit.self, fields: f); try habit.validate()
+                    guard habit.id == id else { throw DataError.invalid("Quitting goal identity mismatch") }
+                case .quitCheckIn:
+                    let check = try Codec.decode(QuitCheckIn.self, fields: f)
+                    guard check.id == id, Planning.validDay(check.day), exists(.quitHabit, check.habitID), check.loggedAt.timeIntervalSince1970.isFinite else { throw DataError.invalid("Invalid quitting check-in") }
+                case .workoutPlan:
+                    let plan = try Codec.decode(WorkoutPlan.self, fields: f); try plan.validate()
+                    guard plan.id == id else { throw DataError.invalid("Workout identity mismatch") }
+                case .workoutLog:
+                    let log = try Codec.decode(WorkoutLog.self, fields: f); try log.validate()
+                    guard log.id == id, exists(.workoutPlan, log.planID), log.loggedAt.timeIntervalSince1970.isFinite else { throw DataError.invalid("Invalid workout log") }
+                case .gymSettings:
+                    let settings = try Codec.decode(GymSettings.self, fields: f); try settings.validate()
+                    guard id == "shared" else { throw DataError.invalid("Invalid gym settings identity") }
                 case .category: _ = try Codec.decode(Category.self, fields: f)
                 case .milestone:
                     let m = try Codec.decode(MilestoneCheck.self, fields: f)

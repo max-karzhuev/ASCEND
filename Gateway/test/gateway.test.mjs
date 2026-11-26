@@ -151,3 +151,39 @@ test('chat rejects a malformed provider reply', () => withServer(async ({post}) 
   const response = await post({requestID:'chat-2', provider:'openai', model:'fixture-model', messages:[{role:'user',content:'Hi'}]}, token, '/v1/chat');
   assert.equal(response.status, 502);
 }, {result:{reply:''}}));
+
+const {planSchema,validatePlan} = await import('../planning.mjs');
+const plan = {summary:'A balanced week',categories:[],goals:[],quests:[],workouts:[{id:'new:push',name:'Push day',weekdays:[2,4,6],exercises:[{id:'new:press',name:'Press',muscles:['chest','triceps'],sets:3,prescription:'8 reps'}]}],quitting:[],preferences:{theme:null,subjects:null,widgets:null,muscleTargets:null,mathDifficulty:null,mathSeconds:null}};
+const appContext = {day:'2026-11-25',timeZone:'America/Toronto',categories:[],goals:[],quests:[],workouts:[],quitting:[],theme:'shadow',subjects:[],widgets:[],muscleTargets:[],mathDifficulty:'Medium',mathSeconds:120};
+test('all four providers carry the same app planning contract',async()=>{
+  for(const provider of ['openai','anthropic','gemini','compatible']) {
+    const result = await callProvider({provider,config:providerConfig,model:'fixture-model',system:'plan',input:{context:appContext},schema:planSchema,transport:async()=>({status:200,body:JSON.stringify(wrapper(provider,plan))})});
+    assert.deepEqual(validatePlan(result),plan);
+  }
+});
+test('plan validates muscle groups, dates, identifiers and allowed operations',()=>{
+  for(const mutate of [p=>p.workouts[0].exercises[0].muscles=[], p=>p.workouts[0].weekdays=[8],p=>p.workouts[0].exercises[0].sets=0,p=>p.preferences.mathSeconds=7,p=>p.preferences.widgets=['gym','gym'],p=>p.completeAllQuests=true,p=>p.summary='',p=>delete p.preferences]) {
+    const invalid=structuredClone(plan);mutate(invalid);assert.throws(()=>validatePlan(invalid));
+  }
+});
+test('plan endpoint validates context before quota and caches retries',()=>withServer(async({post,calls})=>{
+  const body={requestID:'plan-1',provider:'openai',model:'fixture-model',messages:[{role:'user',content:'Plan my week'}],context:appContext};
+  assert.equal((await post({...body,context:{...appContext,health:{steps:100}}},token,'/v1/plan')).status,400);
+  assert.equal(calls(),0);
+  const response=await post(body,token,'/v1/plan');assert.equal(response.status,200);assert.deepEqual(await response.json(),plan);
+  assert.equal((await post(body,token,'/v1/plan')).status,200);assert.equal(calls(),1);
+},{result:plan,inspect:wire=>assert.deepEqual(JSON.parse(JSON.parse(wire).input).context,appContext)}));
+test('invalid AI plan is rejected by endpoint before reaching the app',()=>withServer(async({post})=>{
+  const response=await post({requestID:'plan-invalid',provider:'openai',model:'fixture-model',messages:[{role:'user',content:'Plan'}],context:appContext},token,'/v1/plan');
+  assert.equal(response.status,502);
+},{result:{...plan,preferences:{...plan.preferences,theme:'unknown'}}}));
+test('compatible models can use JSON or prompted JSON without schema support',()=>{
+  for(const outputMode of ['json','text']) {
+    const request=adapterRequest('compatible',{...providerConfig,outputMode},'vendor/model:free','plan',{},planSchema);
+    assert.ok(request.body.messages[0].content.includes(JSON.stringify(planSchema)));
+    if(outputMode==='json') assert.deepEqual(request.body.response_format,{type:'json_object'});
+    else assert.equal(request.body.response_format,undefined);
+  }
+  const result=providersFromEnv({COMPATIBLE_API_KEY:'fixture',COMPATIBLE_MODELS:'vendor/model:free,../../secret',COMPATIBLE_BASE_URL:'https://api.example.com/v1',COMPATIBLE_ALLOWED_HOSTS:'api.example.com',COMPATIBLE_OUTPUT_MODE:'text'});
+  assert.deepEqual(result.compatible.models,['vendor/model:free']);assert.equal(result.compatible.outputMode,'text');
+});

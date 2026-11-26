@@ -6,52 +6,76 @@ struct OverviewView: View {
     @Environment(CalendarAgenda.self) private var agenda
     @Environment(CloudSync.self) private var sync
     @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var customizing = false
+    @State private var addingWidgets = false
+    @State private var editingWidgets = false
     var body: some View {
         GeometryReader { geometry in
             PageScroll {
                 ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center) { greeting; Spacer(minLength: 24); newQuest }
-                    VStack(alignment: .leading, spacing: 18) { greeting; newQuest }
+                    HStack(alignment: .center) { greeting; Spacer(minLength: 24); homeActions }
+                    VStack(alignment: .leading, spacing: 18) { greeting; homeActions }
                 }
-                if geometry.size.width >= 315 && !typeSize.isAccessibilitySize {
-                    HStack(alignment: .center, spacing: 12) {
-                        CalendarCard(compact: true).frame(width: geometry.size.width >= 680 ? 178 : 132)
-                        PlayerCard(compact: geometry.size.width < 680)
+                if store.homeLayout.visible.isEmpty {
+                    EmptyCard(icon: "square.grid.2x2", title: "Make room for what matters", message: "Add widgets to build your own home screen.", actionTitle: "Add widgets") { addingWidgets = true }
+                }
+                DashboardLayout(columns: geometry.size.width >= 900 && !typeSize.isAccessibilitySize ? 2 : 1) {
+                    ForEach(store.homeLayout.visible) { widget in
+                        widgetView(widget)
+                            .overlay(alignment: .topTrailing) {
+                                if editingWidgets {
+                                    Button { changeLayout { $0.hidden.insert(widget) } } label: {
+                                        Image(systemName: "minus.circle.fill").font(.title2).symbolRenderingMode(.palette)
+                                            .foregroundStyle(.white, Color.red).frame(width: 44, height: 44)
+                                    }.buttonStyle(.plain).accessibilityLabel("Remove \(widget.title) widget")
+                                }
+                            }.layoutValue(key: WideWidgetKey.self, value: store.homeLayout.wide.contains(widget))
                     }
-                } else {
-                    PlayerCard(compact: true)
-                    Button { nav.sheet = .calendar } label: { Label("Open glow calendar", systemImage: "calendar") }
                 }
-                if geometry.size.width >= 780 && !typeSize.isAccessibilitySize {
-                    HStack(alignment: .top, spacing: 18) {
-                        VStack(spacing: 18) {
-                            todaysQuests
-                            goalsCard
-                            if !agenda.selected.isEmpty { AgendaCard(compact: true) }
-                        }.frame(maxWidth: .infinity)
-                        VStack(spacing: 18) {
-                            PuzzleFeedCard()
-                            MentalMathCard()
-                            homeChat
-                        }.frame(maxWidth: .infinity)
-                    }
-                } else {
-                    todaysQuests
-                    PuzzleFeedCard()
-                    MentalMathCard()
-                    homeChat
-                    goalsCard
-                    if !agenda.selected.isEmpty { AgendaCard(compact: true) }
-                }
-                HStack {
-                    Label("\(Progression.streak(ledger: store.ledger, now: store.clockNow)) day streak", systemImage: "flame.fill").font(.headline).foregroundStyle(store.profile.theme.accent)
-                        .help("Your first completed quest, submitted answer, finished drill or goal progress counts for the day. Empty rest days keep your streak.")
-                    Spacer()
-                    Button { nav.sheet = .activity } label: { Label("Activity", systemImage: "arrow.up.right") }.buttonStyle(TargetButton()).font(.subheadline)
-                }.padding(.vertical, 2)
                 StatusLabel(text: sync.status, icon: store.syncEnabled ? "icloud" : "externaldrive")
             }
         }
+        .sheet(isPresented: $addingWidgets) { NavigationStack { HomeWidgetGallery() }.editorFrame().preferredColorScheme(.dark) }
+        .sheet(isPresented: $customizing) { NavigationStack { HomeCustomizationView() }.editorFrame().preferredColorScheme(.dark) }
+    }
+    var homeActions: some View {
+        HStack(spacing: 12) {
+            Button { customizing = true } label: { Label("Customize", systemImage: "slider.horizontal.3") }.buttonStyle(TargetButton())
+            Button(editingWidgets ? "Done" : "Edit widgets") { editingWidgets.toggle() }.buttonStyle(TargetButton())
+            Button { addingWidgets = true } label: { Image(systemName: "plus").font(.title3.bold()) }
+                .buttonStyle(AccentButton(color: store.profile.theme.accent)).accessibilityLabel("Add widgets").help("Add widgets")
+        }
+    }
+    @ViewBuilder func widgetView(_ widget: HomeWidget) -> some View {
+        Group {
+            switch widget {
+            case .player: PlayerCard(compact: typeSize.isAccessibilitySize)
+            case .calendar: CalendarCard()
+            case .quests: todaysQuests
+            case .goals: goalsCard
+            case .puzzles: PuzzleFeedCard()
+            case .mentalMath: MentalMathCard()
+            case .chat: homeChat
+            case .agenda: AgendaCard(compact: true)
+            case .achievement: AchievementStreakCard()
+            case .quitting: QuittingCard()
+            case .gym: GymCard()
+            case .health: HealthCard()
+            }
+        }
+        .contextMenu {
+            Button("Move up", systemImage: "arrow.up") { changeLayout { $0.move(widget, by: -1) } }
+                .disabled(store.homeLayout.visible.first == widget)
+            Button("Move down", systemImage: "arrow.down") { changeLayout { $0.move(widget, by: 1) } }
+                .disabled(store.homeLayout.visible.last == widget)
+            Button(store.homeLayout.wide.contains(widget) ? "Use standard width" : "Use full width", systemImage: "arrow.left.and.right") {
+                changeLayout { if !$0.wide.insert(widget).inserted { $0.wide.remove(widget) } }
+            }
+            Button("Remove widget", systemImage: "minus.circle") { changeLayout { $0.hidden.insert(widget) } }
+        }
+    }
+    func changeLayout(_ update: (inout HomeLayout) -> Void) {
+        var layout = store.homeLayout; update(&layout); store.perform { try store.saveHomeLayout(layout) }
     }
     var greeting: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -157,7 +181,7 @@ struct CalendarCard: View {
                 }.padding(9).background(Palette.surface, in: RoundedRectangle(cornerRadius: 12))
             }.buttonStyle(TargetButton()).accessibilityLabel("Open full consistency calendar for \(monthTitle)")
         } else {
-            Card(padding: 18) {
+            Card(padding: 16) {
                 ViewThatFits(in: .horizontal) {
                     HStack { Text("Your consistency").font(.title3.bold()); Spacer(); monthControls }
                     VStack(alignment: .leading, spacing: 12) { Text("Your consistency").font(.title3.bold()); monthControls }
@@ -177,12 +201,12 @@ struct CalendarCard: View {
                         }
                     }
                 } else { VStack(spacing: 7) {
-                    HStack(spacing: 7) { ForEach(["M", "T", "W", "T", "F", "S", "S"].indices, id: \.self) { i in Text(["M", "T", "W", "T", "F", "S", "S"][i]).font(.caption2).foregroundStyle(Palette.muted).frame(maxWidth: .infinity) } }.accessibilityHidden(true)
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 7), count: 7), spacing: 7) {
+                    HStack(spacing: 0) { ForEach(["M", "T", "W", "T", "F", "S", "S"].indices, id: \.self) { i in Text(["M", "T", "W", "T", "F", "S", "S"][i]).font(.caption2).foregroundStyle(Palette.muted).frame(maxWidth: .infinity) } }.accessibilityHidden(true)
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 44), spacing: 0), count: 7), spacing: 2) {
                         ForEach(p.monthDays(containing: month), id: \.self) { day in tile(day) }
                     }
                 }
-                .frame(maxWidth: 350) // Seven 44-point dates plus six 7-point gaps.
+                .frame(minWidth: 308, maxWidth: 350) // Every date remains at least 44 points wide.
                 .frame(maxWidth: .infinity)
                 }
                 HStack(spacing: 6) {
@@ -248,6 +272,7 @@ struct QuestRow: View {
     @Environment(NavigationState.self) private var nav
     var occurrence: Occurrence
     @State private var removal: QuestRemoval?
+    @State private var editingWorkout: WorkoutPlan?
     var body: some View {
         let completed = store.ledger.completion(occurrence.id)?.active == true
         HStack(spacing: 12) {
@@ -268,6 +293,12 @@ struct QuestRow: View {
             }.buttonStyle(TargetButton()).disabled(occurrence.day > store.today)
                 .accessibilityLabel("\(completed ? "Undo" : "Complete") \(occurrence.quest.title)")
             Menu {
+                if let id = occurrence.quest.workoutPlanID {
+                    if let plan = store.workoutPlans.first(where: { $0.id == id }) {
+                        Button("Edit workout plan") { editingWorkout = plan }
+                    }
+                    Text(occurrence.quest.notes)
+                } else {
                 Button("Edit this occurrence") { nav.sheet = .occurrence(occurrence) }
                 if occurrence.quest.schedule != .once {
                     Button("Delete this occurrence…", role: .destructive) { removal = .occurrence(occurrence) }
@@ -277,8 +308,10 @@ struct QuestRow: View {
                     Button("Archive routine") { store.perform { try store.archiveQuest(q) } }
                     Button(q.schedule == .once ? "Delete quest…" : "Delete entire routine…", role: .destructive) { removal = .routine(q) }
                 }
+                }
             } label: { Image(systemName: "ellipsis").buttonTarget().foregroundStyle(Palette.muted) }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Options for \(occurrence.quest.title)")
         }.padding(.vertical, 6).modifier(QuestRemovalConfirmation(removal: $removal))
+            .sheet(item: $editingWorkout) { plan in NavigationStack { WorkoutEditor(original: plan) }.editorFrame() }
     }
 }
 struct GoalSummaryRow: View {

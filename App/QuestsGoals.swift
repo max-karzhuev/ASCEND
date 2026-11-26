@@ -29,7 +29,7 @@ struct QuestsView: View {
             if filter == "Routines" {
                 Card {
                     Text("Templates").font(.headline)
-                    let quests = store.ledger.quests.filter { !$0.id.hasPrefix("override|") && (category == "all" || $0.category == category) }.sorted { $0.title < $1.title }
+                    let quests = store.ledger.quests.filter { !$0.id.hasPrefix("override|") && $0.workoutPlanID == nil && (category == "all" || $0.category == category) }.sorted { $0.title < $1.title }
                     if quests.isEmpty { EmptyCard(icon: "repeat", title: "Design your daily rhythm", message: "Create a routine to start building consistency.") }
                     ForEach(quests) { q in
                         HStack {

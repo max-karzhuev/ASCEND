@@ -53,11 +53,12 @@ struct AppContainer: View {
     @State private var ai = AIClient()
     @State private var navigation = NavigationState()
     @State private var agenda = CalendarAgenda()
+    @State private var health = HealthService()
     @State private var reminders = ReminderService()
     @Environment(\.scenePhase) private var phase
     init(store: AppStore) { self.store = store; _sync = State(initialValue: CloudSync(store: store)) }
     var body: some View {
-        RootView().environment(store).environment(sync).environment(ai).environment(navigation).environment(reminders).environment(agenda)
+        RootView().environment(store).environment(sync).environment(ai).environment(navigation).environment(reminders).environment(agenda).environment(health)
             .onOpenURL { url in
                 guard url.scheme == "ascend", url.host == "widget" else { return }
                 if url.path == "/tasks" { navigation.destination = .quests }
@@ -72,9 +73,9 @@ struct AppContainer: View {
                 store.perform { try store.reconcile() }; await sync.sync(); await reminders.refresh(store: store)
             }
             .onReceive(NotificationCenter.default.publisher(for: .EKEventStoreChanged).receive(on: RunLoop.main)) { _ in agenda.refresh() }
-            .task { agenda.refresh() }
+            .task { agenda.refresh(); health.configure(store: store); await health.refresh(store: store) }
             .onChange(of: phase) { _, phase in
-                if phase == .active { agenda.refresh(); store.perform { try store.reconcile() }; Task { await sync.sync(); await reminders.refresh(store: store) } }
+                if phase == .active { agenda.refresh(); store.perform { try store.reconcile() }; Task { await sync.sync(); await reminders.refresh(store: store); await health.refresh(store: store) } }
             }
             .task {
                 #if os(macOS)
@@ -85,6 +86,7 @@ struct AppContainer: View {
                     try? await Task.sleep(for: .seconds(30))
                     guard !Task.isCancelled else { return }
                     store.clockNow = Date()
+                    if phase == .active, health.enabled, Date().timeIntervalSince(health.updatedAt ?? .distantPast) >= 300 { await health.refresh(store: store) }
                     if store.today != previous {
                         #if os(macOS)
                         store.publishWidget()
@@ -118,7 +120,10 @@ struct RootView: View {
                 TabView(selection: $navigation.destination) {
                     ForEach([Destination.overview, .quests, .goals, .brain, .settings]) { destination in
                         NavigationStack { screen(destination).navigationTitle(destination == .overview ? "ASCEND" : destination.title).navigationBarTitleDisplayMode(.inline)
-                            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { navigation.sheet = .chat } label: { Label("AI Chat", systemImage: Destination.chat.icon) } } } }
+                            .toolbar {
+                                if destination == .overview { ToolbarItem(placement: .topBarLeading) { Button { navigation.sheet = .activity } label: { Label("Activity", systemImage: Destination.activity.icon) } } }
+                                ToolbarItem(placement: .topBarTrailing) { Button { navigation.sheet = .chat } label: { Label("AI Chat", systemImage: Destination.chat.icon) } }
+                            } }
                             .tabItem { Label(destination == .overview ? "Home" : destination == .brain ? "Brain" : destination.title, systemImage: destination.icon) }.tag(destination)
                     }
                 }

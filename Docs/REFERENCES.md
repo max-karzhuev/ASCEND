@@ -12,3 +12,9 @@ Checked during implementation on 21 November 2026. Adapters are fixture-tested; 
 - [Apple Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device): physical-device setup for Xcode-installed apps.
 
 OpenAI-compatible services are not assumed to support every OpenAI feature. The compatible adapter uses Chat Completions with a JSON-schema response format. The administrator must choose a model/endpoint that supports that contract; failures are surfaced rather than silently falling back to fabricated data.
+
+## Health and anatomy in 2.0
+
+- [Apple: authorizing access to health data](https://developer.apple.com/documentation/healthkit/authorizing-access-to-health-data)
+- [Apple: setting up HealthKit](https://developer.apple.com/documentation/healthkit/setting-up-healthkit)
+- Anatomical vector geometry: [react-native-body-highlighter](https://github.com/HichamELBSI/react-native-body-highlighter/tree/8ed39ac2ae9cb46fb79d77eedec7e5b029a75174), copyright 2022 ELABBASSI Hicham, MIT license. The source license is retained in `Configuration/AnatomyLicense.txt` and bundled with the app. Paths were converted to normalized SwiftUI curves; ASCEND supplies its own group mapping, rendering, layout and interaction.

@@ -61,6 +61,8 @@ public struct Occurrence: Codable, Equatable, Identifiable, Sendable {
     public var planned: Bool
     public var available: Bool
     public var weeklySlot: Int?
+    /// Set only when a workout plan edit replaces today's open snapshot.
+    public var revised: Bool?
     public init(quest: Quest, day: String, timeZone: String, planned: Bool, available: Bool, weeklySlot: Int? = nil, week: String? = nil) {
         templateID = quest.id; self.day = day; self.timeZone = timeZone; self.quest = quest
         self.planned = planned; self.available = available; self.weeklySlot = weeklySlot
@@ -73,6 +75,7 @@ public struct Completion: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var active: Bool
     public var occurrenceID: String
+    public var workoutLogID: String? = nil
     public var day: String
     public var xp: Int
     public var category: String

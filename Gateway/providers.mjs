@@ -59,11 +59,15 @@ export function providersFromEnv(env) {
   const list = name => (env[name] || '').split(',').map(s => s.trim()).filter(Boolean);
   const result = {};
   for (const [id,prefix] of [['openai','OPENAI'],['anthropic','ANTHROPIC'],['gemini','GEMINI'],['compatible','COMPATIBLE']]) {
-    const key = env[`${prefix}_API_KEY`], models = list(`${prefix}_MODELS`).filter(m => /^[a-zA-Z0-9_.-]{1,100}$/.test(m) && !m.startsWith('YOUR_'));
+    const key = env[`${prefix}_API_KEY`], models = list(`${prefix}_MODELS`).filter(m => /^[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,99}$/.test(m) && !m.includes('..') && !m.startsWith('YOUR_'));
     if (key && models.length) result[id] = { key, models };
   }
   if (result.anthropic) result.anthropic.version = env.ANTHROPIC_VERSION || '2023-06-01';
   if (result.compatible) result.compatible.base = validateEndpoint(env.COMPATIBLE_BASE_URL, list('COMPATIBLE_ALLOWED_HOSTS')).href.replace(/\/$/, '');
+  if (result.compatible) {
+    result.compatible.outputMode = env.COMPATIBLE_OUTPUT_MODE || 'json_schema';
+    if (!['json_schema','json','text'].includes(result.compatible.outputMode)) throw new GatewayError(503, 'configuration', 'Invalid COMPATIBLE_OUTPUT_MODE');
+  }
   return result;
 }
 export function adapterRequest(provider, config, model, system, input, schema) {
@@ -83,11 +87,16 @@ export function adapterRequest(provider, config, model, system, input, schema) {
     body: { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: user }] }], generationConfig: { maxOutputTokens: 6000, responseMimeType: 'application/json', responseJsonSchema: schema } },
     extract: r => { const c = r.candidates?.[0]; if (c?.finishReason !== 'STOP') throw new Error('Incomplete response'); return c.content?.parts?.filter(p => p.text && !p.thought).map(p => p.text).join(''); }
   };
-  if (provider === 'compatible') return {
+  if (provider === 'compatible') {
+    const mode = config.outputMode || 'json_schema';
+    const format = mode === 'json_schema' ? { type: 'json_schema', json_schema: { name: 'ascend_result', strict: true, schema } } : mode === 'json' ? {type:'json_object'} : undefined;
+    const instructions = mode === 'json_schema' ? system : `${system}\nReturn one JSON object only, without markdown fences, matching this JSON Schema: ${JSON.stringify(schema)}`;
+    return {
     url: new URL(`${config.base}/chat/completions`), headers: { authorization: `Bearer ${config.key}` },
-    body: { model, max_tokens: 6000, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], response_format: { type: 'json_schema', json_schema: { name: 'ascend_result', strict: true, schema } } },
+    body: { model, max_tokens: 6000, messages: [{ role: 'system', content: instructions }, { role: 'user', content: user }], ...(format ? {response_format:format} : {}) },
     extract: r => { if (r.choices?.[0]?.finish_reason !== 'stop') throw new Error('Incomplete response'); return r.choices[0].message?.content; }
   };
+  }
   throw new GatewayError(400, 'provider', 'Unsupported provider');
 }
 export async function callProvider({provider,config,model,system,input,schema,signal,transport = secureTransport,delay = ms => new Promise(r => setTimeout(r, ms))}) {

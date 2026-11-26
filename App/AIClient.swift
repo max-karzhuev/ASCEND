@@ -84,6 +84,7 @@ struct GatewayFailure: Decodable { struct Detail: Decodable { var code: String; 
         guard let response = response as? HTTPURLResponse else { throw DataError.invalid("Invalid gateway response") }
         guard (200..<300).contains(response.statusCode) else {
             let failure = try? JSONDecoder().decode(GatewayFailure.self, from: data)
+            if response.statusCode == 404, path == "v1/plan" { throw DataError.invalid("Update and restart your ASCEND gateway to enable app planning.") }
             if response.statusCode == 404, path == "v1/chat" { throw DataError.invalid("Update your ASCEND gateway to version 1.5 or later and restart it to enable chat.") }
             throw DataError.invalid(failure?.error.message ?? "Gateway returned HTTP \(response.statusCode)")
         }
@@ -104,6 +105,10 @@ struct GatewayFailure: Decodable { struct Detail: Decodable { var code: String; 
             let result: TestResponse = try await request("v1/test", body: ["requestID": UUID().uuidString, "provider": provider, "model": model])
             status = result.ok ? "Provider connection verified just now" : "Provider test did not succeed"
         } catch { status = "Connection failed · \(error.localizedDescription)" }
+    }
+    func generatePlan(messages: [[String: String]], context: Data) async throws -> AIPlan {
+        let value = try JSONSerialization.jsonObject(with: context)
+        return try await request("v1/plan", body: ["requestID": UUID().uuidString, "provider": provider, "model": model, "messages": messages, "context": value])
     }
     func chatReply(to messages: [[String: String]]) async throws -> String {
         struct Reply: Decodable { let reply: String }

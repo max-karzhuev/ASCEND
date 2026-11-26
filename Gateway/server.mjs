@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GatewayError, fail, text, exactKeys, validateConfig, validateQuestion, validateSession, validateGrade, sessionSchema, gradeSchema, testSchema, teachingInstruction, gradingInstruction, chatInstruction, chatSchema, validateMessages, validateReply } from './schema.mjs';
+import { planSchema, planInstruction, validatePlan, validatePlanContext } from './planning.mjs';
 import { providersFromEnv, callProvider } from './providers.mjs';
 
 export class Quota {
@@ -52,11 +53,11 @@ export function createGateway({token, providers, quota, transport, delay}) {
     const abort = new AbortController(); req.on('aborted', () => abort.abort()); res.on('close', () => { if (!res.writableEnded) abort.abort(); });
     try {
       if (!authenticate(req,token)) throw new GatewayError(401,'authentication','A valid ASCEND gateway token is required');
-      if (req.method === 'GET' && req.url === '/v1/config') return respond(200, {providers: Object.fromEntries(Object.entries(providers).map(([k,v]) => [k,v.models])), usage: { used: quota.state.used, limit: quota.dayLimit, day: quota.state.day }, providerTested: false});
-      if (req.method !== 'POST' || !['/v1/session','/v1/grade','/v1/test','/v1/chat'].includes(req.url)) throw new GatewayError(404,'not_found','Unknown endpoint');
+      if (req.method === 'GET' && req.url === '/v1/config') return respond(200, {providers: Object.fromEntries(Object.entries(providers).map(([k,v]) => [k,v.models])), usage: { used: quota.state.used, limit: quota.dayLimit, day: quota.state.day }, providerTested: false, capabilities: ['chat','planning','learning']});
+      if (req.method !== 'POST' || !['/v1/session','/v1/grade','/v1/test','/v1/chat','/v1/plan'].includes(req.url)) throw new GatewayError(404,'not_found','Unknown endpoint');
       if (!req.headers['content-type']?.startsWith('application/json')) throw new GatewayError(415,'content_type','Use application/json');
       const body = await readJSON(req);
-      exactKeys(body, ['requestID','provider','model', ...(req.url === '/v1/session' ? ['config'] : req.url === '/v1/grade' ? ['question','answer','hintsUsed','mode'] : req.url === '/v1/chat' ? ['messages'] : [])]);
+      exactKeys(body, ['requestID','provider','model', ...(req.url === '/v1/session' ? ['config'] : req.url === '/v1/grade' ? ['question','answer','hintsUsed','mode'] : req.url === '/v1/chat' ? ['messages'] : req.url === '/v1/plan' ? ['messages','context'] : [])]);
       text(body.requestID,100,'request ID'); text(body.model,100,'model'); text(body.provider,30,'provider');
       const config = providers[body.provider];
       if (!config || !config.models.includes(body.model)) throw new GatewayError(503,'unconfigured','This provider/model is not configured on the gateway');
@@ -64,6 +65,9 @@ export function createGateway({token, providers, quota, transport, delay}) {
       if (req.url === '/v1/session') {
         input = validateConfig(body.config); schema = sessionSchema; system = teachingInstruction;
         validate = value => validateSession(value, body.config.count);
+      } else if (req.url === '/v1/plan') {
+        input = {...validateMessages(body.messages), context: validatePlanContext(body.context)};
+        schema = planSchema; system = planInstruction; validate = validatePlan;
       } else if (req.url === '/v1/chat') {
         input = validateMessages(body.messages); schema = chatSchema; system = chatInstruction; validate = validateReply;
       } else if (req.url === '/v1/grade') {

@@ -70,7 +70,7 @@ Quest XP is 10/25/50 for easy/medium/hard. Level L requires `100 + 25 × (L − 
 
 Calendar brightness uses completed planned daily occurrences divided by planned daily occurrences. Each completion increases the tile’s fill and halo continuously with this fraction. Undo reverses that change. One-off and weekly sessions never inflate that denominator. A day with only extra activity has a dot and no invented percentage. Rest days have an outline; future dates remain unfilled; today’s date is underlined.
 
-A streak counts each planning date with a completed quest, submitted puzzle or Brainmaxing answer, finished mental math round, positive numeric goal entry, or checked milestone. History is reduced from active records, so undo and deletion can change earlier days. A day with no activity breaks the streak only after a scheduled day ends. Empty rest days are skipped and future dates are excluded. Calendar brightness still shows the fraction of planned quests completed.
+A streak counts each planning date with a completed quest, submitted puzzle or Brainmaxing answer, finished mental math round, positive numeric goal entry, or checked milestone. History is reduced from active records, so undo and deletion can change earlier days. Two missed calendar days can be frozen: after Monday activity, returning by Thursday night preserves the streak, without counting Tuesday or Wednesday. Friday starts a new streak. Future dates are excluded; empty rest days follow the same grace period. New overdue-quest completions credit the actual completion date while the original plan snapshot remains intact. Calendar brightness still shows the fraction of planned quests completed.
 
 Goal totals are active completion quantities plus live manual contributions, or the sum of completed milestone weights. Undo removes the completion’s contribution once. Progress meters clamp visually at 100%, while the numeric value can exceed the target.
 
@@ -91,3 +91,9 @@ The app observes availability, pending changes, errors, and last completed excha
 JSON exports have `version: 1`, an export timestamp, and immutable changes. The importer checks size, clocks, scalar types, dates, identities, relationships, routine patches, learning schema, and duplicate-ID collisions before mutating storage. Unknown archive versions fail explicitly. Credentials and per-device metadata are excluded.
 
 This release retains its operation log and tombstones. It does not implement log compaction, multi-account database switching, or multi-tenant gateway hosting. Those require explicit migrations/protocol changes rather than silently discarding history.
+
+## Home and wellness
+
+HomeLayout persists widget order, hidden cards and width per device. Quitting goals and check-ins, workout plans and immutable workout logs, and per-muscle weekly targets use the change ledger and archive validation. Check-ins are atomic last-writer-wins at `habitID|day`; workout plans are atomic to keep their exercises and weekdays consistent. Workout logs are first-writer-wins snapshots and remain after a plan is deleted. Tombstoned logs stop contributing to muscle progress. Shared generation resets apply to all new ledger kinds. New kinds require version 2.0 on each participating device.
+
+HealthService uses read-only HealthKit queries on iOS and keeps values in memory. Cumulative statistics read steps, active energy and distance; sleep queries union clipped intervals for asleep/REM/core/deep samples. A completed permission request does not establish read access. Query errors and absent samples have distinct UI states. The Mac code does not instantiate HKHealthStore.

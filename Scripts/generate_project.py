@@ -12,7 +12,7 @@ def quoted(value): return json.dumps(str(value))
 objects = []
 def add(key, body): objects.append(f'{ident(key)} = {{ {body} }};')
 sources = sorted([*root.glob('Sources/AscendCore/*.swift'), *root.glob('App/*.swift'), *root.glob('Shared/*.swift')])
-resources = ['Assets.xcassets', 'Configuration/PrivacyInfo.xcprivacy']
+resources = ['Assets.xcassets', 'Configuration/PrivacyInfo.xcprivacy', 'Configuration/AnatomyLicense.txt']
 refs, builds = [], []
 for file in sources:
     relative = str(file.relative_to(root)); key = 'file:' + relative
@@ -21,7 +21,7 @@ for file in sources:
     refs.append(ident(key)); builds.append(ident('build:' + relative))
 resource_builds = []
 for relative in resources:
-    filetype = 'folder.assetcatalog' if relative.endswith('xcassets') else 'text.xml'
+    filetype = 'folder.assetcatalog' if relative.endswith('xcassets') else 'text' if relative.endswith('.txt') else 'text.xml'
     add('file:' + relative, f'isa = PBXFileReference; lastKnownFileType = {filetype}; path = {quoted(relative)}; sourceTree = "<group>";')
     add('build:' + relative, f'isa = PBXBuildFile; fileRef = {ident("file:" + relative)};')
     refs.append(ident('file:' + relative)); resource_builds.append(ident('build:' + relative))

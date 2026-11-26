@@ -80,3 +80,9 @@ open -n /absolute/path/to/ASCEND.app --args --validation
 ```
 
 This displays a validation label and uses Application Support/ASCEND-Validation. Normal launches use Application Support/ASCEND. No fixtures are seeded into either store. Simulator installations are separate device sandboxes. Do not enable iCloud for a validation workspace against a real personal container.
+
+## Apple Health and Apple Watch
+
+Use the Apple Health widget in ASCEND on iPhone (or supported iPad). Choose **Connect Apple Health** and allow the data types you want to display. Apple Watch and other Health-compatible trackers must first sync with Apple's Health app. ASCEND reads steps, sleep, active energy and walking/running distance; it does not pair with a Watch directly or write Health records. Manage permissions in Health → profile → Apps → ASCEND. A dash may mean no samples or denied read access. Mac displays connection guidance instead of health readings.
+
+The local and Cloud iOS entitlement files contain `com.apple.developer.healthkit`, and Info.plist includes `NSHealthShareUsageDescription`. For a physical iPhone, enable HealthKit for your registered bundle identifier/team and regenerate the provisioning profile as needed. macOS uses separate entitlements without HealthKit. Live Health/Watch data and notification delivery need testing on an authorized physical device.

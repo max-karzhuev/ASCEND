@@ -14,6 +14,12 @@ Home topic puzzles share the Brainmaxing session storage and export. Opening a b
 
 AI Chat keeps the current conversation in window memory. Sending shares your message and up to seven recent exchanges with your configured gateway and selected provider. **Add today’s quests** inserts quest titles and completion status into the editable draft. You decide what to send. Clearing the chat, closing the app, or changing the connection clears that conversation locally. The gateway briefly caches successful replies in memory for retries. Upstream retention depends on your provider.
 
+## Quitting, workouts and home preferences
+
+Quitting goal names, evening check-in hours, successful/setback check-ins, workout plans and schedules, logged exercise snapshots and weekly muscle targets are saved in the operation history. JSON export and optional private CloudKit sync include them. These records can be sensitive; protect your exports. Archive a quitting goal to restore it later. Deleting a plan preserves past logged workouts; deleting a workout removes its progress. As with other ledger records, deletion is a logical tombstone and the underlying archive retains historical payloads.
+
+Home widget order/visibility/width and Health metric visibility/connection preferences are device-local metadata, excluded from exports and sync, and cleared by Clear local data. Apple Health readings remain in memory only. ASCEND never writes Health samples or sends readings to its AI gateway or CloudKit. Disconnect stops reads and clears displayed values; revoke permissions separately in Apple Health if desired. Clearing ASCEND data does not delete records in Apple Health.
+
 ## Deleting a quest
 
 Use the quest’s **…** menu to delete a single occurrence or the entire routine. One-time quests have a **Delete quest** action. The trash button under **Quests → Routines** also works for archived templates. Weekly targets offer deletion in their History menu. Review the scope in the confirmation dialog.

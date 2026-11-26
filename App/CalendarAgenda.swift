@@ -121,7 +121,7 @@ struct AgendaCard: View {
         Card {
             Label("Upcoming calendar events", systemImage: "calendar.badge.clock").font(.title3.bold())
             if agenda.authorization != .fullAccess || agenda.selected.isEmpty {
-                Button("Choose calendars in Settings") { navigation.destination = .settings }
+                Button("Choose calendars in Settings") { navigation.destination = .settings }.buttonStyle(TargetButton())
             } else {
                 if agenda.items.isEmpty {
                     Text("No upcoming events in the next 30 days from your selected calendars.").foregroundStyle(.secondary)

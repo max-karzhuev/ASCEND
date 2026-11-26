@@ -79,6 +79,7 @@ struct SettingsView: View {
     @Environment(CloudSync.self) private var sync
     @Environment(AIClient.self) private var ai
     @Environment(ReminderService.self) private var reminders
+    @Environment(HealthService.self) private var health
     @State private var name = ""
     @State private var zone = ""
     @State private var token = ""
@@ -173,7 +174,7 @@ struct SettingsView: View {
                 }
             }
             .confirmationDialog("Merge this local history with your private iCloud history?", isPresented: $confirmSync, titleVisibility: .visible) { Button("Enable and merge") { Task { await sync.enable() } } } message: { Text("Use the same Apple Account, container, and CloudKit environment on both devices. Local data will be associated with this Apple Account.") }
-            .confirmationDialog("Clear this device’s data?", isPresented: $confirmLocal, titleVisibility: .visible) { Button("Clear local data", role: .destructive) { sync.disable(); store.perform { try store.clearLocal(); ai.chat.clear() }; Task { await reminders.refresh(store: store) } } } message: { Text("This removes local history and pending changes and disables sync. Cloud history is unchanged and can be downloaded again. Export first if you need unsynced changes.") }
+            .confirmationDialog("Clear this device’s data?", isPresented: $confirmLocal, titleVisibility: .visible) { Button("Clear local data", role: .destructive) { sync.disable(); store.perform { try store.clearLocal(); ai.chat.clear(); health.disconnect(store: store); health.configure(store: store) }; Task { await reminders.refresh(store: store) } } } message: { Text("This removes local history and pending changes and disables sync. Cloud history is unchanged and can be downloaded again. Export first if you need unsynced changes.") }
             .confirmationDialog("Reset history on every connected device?", isPresented: $confirmShared, titleVisibility: .visible) { Button("Reset shared history", role: .destructive) { store.perform { try store.resetEverywhere(); ai.chat.clear() }; Task { await sync.sync() } } } message: { Text("Progress and learning history will be reset after devices exchange with iCloud. Offline changes from the old history cannot restore it. The underlying change archive is retained for convergence; see the data-deletion guide for physical erasure. Export first if needed.") }
     }
     func profileBinding(_ key: WritableKeyPath<Profile, Bool>) -> Binding<Bool> { Binding(get: { store.profile[keyPath: key] }, set: { value in var p = store.profile; p[keyPath: key] = value; store.perform { try store.saveProfile(p) } }) }

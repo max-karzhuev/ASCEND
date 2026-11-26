@@ -1,5 +1,30 @@
 # Validation results
 
+## Final 2.0 verification and workout fixes, 25 November 2026
+
+This run supersedes the test counts in the entry below. **73 Swift core tests** and **26 gateway tests** passed. Project regeneration produced no changes. The universal macOS Release (arm64 and x86_64) and generic iPhone Simulator builds succeeded, strict signature verification passed, and app and widget versions both read 2.0 (12).
+
+Fixed after review, with the first three reproduced by failing tests beforehand:
+
+- Editing a workout now updates today's open quest.
+- Adding today to a workout's training days after a rest-day snapshot now creates today's quest.
+- Removing today and adding it back now restores the quest. A plan edit writes a `revised` occurrence snapshot; ordinary snapshots remain first-writer-wins and completed quests are not rewritten. A day already removed by an earlier 2.0 development build stays removed.
+- iPhone Home regained a route to Activity through a toolbar button.
+- The AI plan review shows category names instead of identifiers.
+- The planner instruction states the field limits that validation enforces.
+
+A temporary in-memory harness compiled with the app sources passed 14 checks covering workout editing, logging and removal, archive re-import, AI plan application, duplicate and stale previews, and the gateway's acceptance of the app's planning context. It did not open the personal database. No interactive UI session or live provider request was run.
+
+## Customizable home and wellness, 25 November 2026
+
+Version 2.0 (build 12) passed **59 Swift core tests** and **21 gateway tests**, with no failures. The final sources built successfully for universal macOS Release (arm64 and x86_64) and the generic iPhone Simulator destination. Regenerating the Xcode project was deterministic. The app and embedded widget versions match. Strict recursive signature verification passed for the Release bundle; the bundled anatomical geometry includes its MIT license.
+
+New core coverage includes widget order/visibility/width persistence, two-missed-day streak recovery and expiry, duplicate/future activity, timezone/DST boundaries, evening check-in gating, explicit setbacks, required exercise muscles, weekday plans, weekly targets and partial-workout progress, stable operation identities, archive validation, deletion, and overlapping sleep intervals. An isolated native AppStore harness also verified saved layout metadata, invalid-plan rejection, duplicate workout logging, frozen quitting streaks, archive export/import, log deletion, and local reset.
+
+The actual Mac SwiftUI screens ran with a separate in-memory test profile. The refined black front/back anatomy was visually checked against the requested style. Tapping a muscle and using the labelled muscle chooser both changed the progress panel. Logging only the chest exercise advanced chest from 1/3 to 2/3 while biceps stayed at 1/3. Home customization moved the gym card, changed it to full width, and restored it to standard width. The compact two-column layout filled the space beside the gym card. The evening check-in was visibly disabled before its configured opening time. These checks used synthetic history and did not modify the personal database.
+
+The iPhone check covers compilation, not a physical-device UI or HealthKit session. Live Health permissions, steps/sleep from an Apple Watch, notification delivery, and exchange of the new records through a signed private CloudKit container still require device testing. The existing full VoiceOver/Dynamic Type and public notarization limitations below also remain.
+
 ## Button targets and activity streaks, 24 November 2026
 
 Version 1.9 (build 11) passed all 46 Swift core tests and 21 gateway tests. Coverage includes partial quest days, undo and deletion, one-time quests, drafts and submitted answers, timed drills, future dates, duplicate imports, and goal progress. The clean checkout built for iPhone Simulator and both Mac architectures. Regenerating the Xcode project produced no changes.

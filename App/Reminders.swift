@@ -43,6 +43,11 @@ import Observation
                     if let minute = quest.reminderMinutes { enqueue(key: quest.id, title: quest.title, body: "Your weekly target: \(quest.weeklyTarget) sessions, at your pace.", day: day, minute: minute) }
                 }
             }
+            for habit in store.quitHabits where !habit.archived && habit.startedDay <= day {
+                if !store.quitCheckIns.contains(where: { $0.habitID == habit.id && $0.day == day }) {
+                    enqueue(key: "quit.\(habit.id)", title: "Your evening check-in", body: "Take a moment to check in on your quitting goal.", day: day, minute: habit.checkInHour * 60)
+                }
+            }
             if store.profile.dailyCheckIn { enqueue(key: "checkin", title: "A moment for your ascent", body: "Check in with your quests. Every small step counts.", day: day, minute: 20 * 60) }
             if store.profile.brainReminder { enqueue(key: "brain", title: "Keep your curiosity moving", body: "A short Brainmaxing session is waiting when you’re ready.", day: day, minute: 18 * 60) }
         }

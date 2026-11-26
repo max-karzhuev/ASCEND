@@ -10,27 +10,44 @@ struct ChatMessage: Identifiable {
 
 @MainActor @Observable final class ChatSession {
     var draft = ""
+    var planningMode = false
+    var proposal: AIPlanProposal?
     private(set) var history: [ChatMessage] = []
     private(set) var pending: ChatMessage?
     private(set) var error: String?
     @ObservationIgnored private var task: Task<Void, Never>?
 
-    func send(using ai: AIClient) {
+    func send(using ai: AIClient, store: AppStore) {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard pending == nil, ai.configured, !text.isEmpty, text.utf16.count <= 4000 else { return }
+        let appContext: Data?
+        do {
+            store.clockNow = Date()
+            appContext = planningMode ? try store.planningContext() : nil
+        } catch { self.error = error.localizedDescription; return }
+        let baselineLedger = store.ledger, day = store.today, planning = store.planning, actor = store.actor
         let message = ChatMessage(role: "user", content: text)
         var context = Array(history.suffix(14)).map(\.payload) + [message.payload]
         // Drop complete older turns until the JSON fits, including escaped and multibyte text.
-        while context.count > 1, ((try? JSONEncoder().encode(context).count) ?? .max) > 60_000 {
+        while context.count > 1, ((try? JSONEncoder().encode(context).count) ?? .max) > (appContext == nil ? 60_000 : 12_000) {
             context.removeFirst(2)
         }
         draft = ""
         error = nil
         pending = message
+        proposal = nil
         task = Task {
             guard !Task.isCancelled, pending?.id == message.id else { return }
             do {
-                let reply = try await ai.chatReply(to: context)
+                let reply: String
+                if let appContext {
+                    let plan = try await ai.generatePlan(messages: context, context: appContext)
+                    let id = UUID().uuidString
+                    _ = try plan.transaction(ledger: baselineLedger, actor: actor, day: day, planning: planning, proposalID: id)
+                    guard pending?.id == message.id else { return }
+                    proposal = AIPlanProposal(id: id, plan: plan, baseline: appContext, generation: baselineLedger.generation)
+                    reply = plan.summary
+                } else { reply = try await ai.chatReply(to: context) }
                 guard pending?.id == message.id else { return }
                 history += [message, ChatMessage(role: "assistant", content: reply)]
             } catch {
@@ -53,6 +70,7 @@ struct ChatMessage: Identifiable {
     func clear() {
         stop()
         history = []
+        proposal = nil
         draft = ""
         error = nil
     }
@@ -65,6 +83,7 @@ struct ChatView: View {
     @Environment(AppStore.self) private var store
     @Environment(NavigationState.self) private var navigation
     @State private var confirmClear = false
+    @State private var reviewingPlan = false
     private var accent: Color { store.profile.theme.accent }
 
     var body: some View {
@@ -95,7 +114,7 @@ struct ChatView: View {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         if chat.history.isEmpty && chat.pending == nil {
                             Text("What would you like to work on?").font(.title3.weight(.semibold))
-                            if !embedded { Text("Ask for a study plan, talk through a goal, or add today’s quests to your message.")
+                            if !embedded { Text("Turn on Plan with my app to build goals, workouts and routines you can apply in ASCEND.")
                                 .font(.callout).foregroundStyle(Palette.muted) }
                         }
                         ForEach(chat.history) { message in bubble(message) }
@@ -114,6 +133,15 @@ struct ChatView: View {
             }
             VStack(alignment: .leading, spacing: 10) {
                 if ai.configured {
+                    if let proposal = chat.proposal, proposal.plan.changeCount > 0 {
+                        Button { reviewingPlan = true } label: {
+                            Label(proposal.applied ? "View applied plan" : "Review AI plan · \(proposal.plan.changeCount) changes", systemImage: "list.bullet.clipboard")
+                        }.buttonStyle(TargetButton())
+                    }
+                    Toggle("Plan with my app", isOn: $chat.planningMode).disabled(chat.pending != nil)
+                    if chat.planningMode {
+                        Text("Shares your goals, quests, workouts, quitting goals and planning preferences. Review the AI’s changes before applying them.").font(.caption).foregroundStyle(Palette.muted)
+                    }
                     if let error = chat.error { Text(error).font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
                     TextField("Message your AI…", text: $chat.draft, axis: .vertical)
                         .lineLimit(1...5).textFieldStyle(.plain).padding(10)
@@ -125,7 +153,7 @@ struct ChatView: View {
                         Spacer()
                         if chat.pending != nil { Button("Stop") { chat.stop() } }
                         else {
-                            Button { chat.send(using: ai) } label: { Label("Send", systemImage: "arrow.up.circle.fill") }
+                            Button { chat.send(using: ai, store: store) } label: { Label("Send", systemImage: "arrow.up.circle.fill") }
                                 .keyboardShortcut(.return, modifiers: .command)
                                 .disabled(chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || chat.draft.utf16.count > 4000)
                         }
@@ -140,6 +168,9 @@ struct ChatView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: embedded ? nil : .infinity, alignment: .topLeading)
         .background(embedded ? Palette.surface : Palette.background).tint(accent)
+        .sheet(isPresented: $reviewingPlan) {
+            if let proposal = chat.proposal { NavigationStack { AIPlanReview(proposal: proposal) }.editorFrame().preferredColorScheme(.dark) }
+        }
         .confirmationDialog("Clear this conversation?", isPresented: $confirmClear) {
             Button("Clear chat", role: .destructive) { chat.clear() }
         }

@@ -147,8 +147,10 @@ public enum Progression {
                           mathRounds: mathRounds,
                           brainSessions: Set(attempts.map(\.sessionID)).count, isFuture: day > today)
     }
-    public static func streak(ledger: Ledger, now: Date) -> Int {
-        let today = Planning(zone: ledger.effectiveZone(at: now)).day(now)
+    public static func streak(ledger: Ledger, now: Date) -> Int { streakStatus(ledger: ledger, now: now).count }
+    public static func streakStatus(ledger: Ledger, now: Date) -> StreakStatus {
+        let planning = Planning(zone: ledger.effectiveZone(at: now))
+        let today = planning.day(now)
         var activeDays = Set(ledger.completions.map(\.day))
         activeDays.formUnion(ledger.attempts.lazy.filter(\.submitted).map(\.day))
         activeDays.formUnion(ledger.mathRounds.map(\.day))
@@ -169,15 +171,9 @@ public enum Progression {
             }
         }
 
-        let plannedDays = ledger.occurrences.lazy.filter(\.planned).map(\.day)
-        let relevantDays = activeDays.union(plannedDays).filter { $0 <= today }
-        var count = 0
-        for day in relevantDays.sorted(by: >) {
-            if activeDays.contains(day) { count += 1 }
-            else if day < today { break }
-        }
-        return count
+        return StreakRules.status(days: activeDays, today: today, planning: planning)
     }
+
     public static func goalValue(_ goal: Goal, ledger: Ledger) -> Double {
         if goal.kind == .milestones {
             let checks = ledger.values(MilestoneCheck.self, kind: .milestone).filter { $0.goalID == goal.id && $0.done }

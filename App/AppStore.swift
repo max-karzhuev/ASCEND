@@ -28,6 +28,7 @@ import Observation
     let container: ModelContainer
     let context: ModelContext
     private(set) var mentalMath = MentalMathRecord()
+    private(set) var homeLayout = HomeLayout()
     let homePuzzles = HomePuzzleLoader()
     var didChange: (() -> Void)?
     var today: String { planning.day(clockNow) }
@@ -57,7 +58,49 @@ import Observation
         if let data = metadata("mentalMath"), let record = try? JSONDecoder().decode(MentalMathRecord.self, from: data), record.settings.isValid {
             mentalMath = record
         }
+        if let data = metadata("homeLayout"), let layout = try? JSONDecoder().decode(HomeLayout.self, from: data) {
+            homeLayout = layout.normalized
+        }
         // No seed progress. Profile/category defaults are written only after onboarding.
+    }
+    func saveHomeLayout(_ layout: HomeLayout) throws {
+        let normalized = layout.normalized
+        try setMetadata("homeLayout", data: JSONEncoder().encode(normalized))
+        homeLayout = normalized
+    }
+    var quitHabits: [QuitHabit] { ledger.values(QuitHabit.self, kind: .quitHabit).sorted { $0.startedDay == $1.startedDay ? $0.name < $1.name : $0.startedDay < $1.startedDay } }
+    var quitCheckIns: [QuitCheckIn] { ledger.values(QuitCheckIn.self, kind: .quitCheckIn) }
+    var workoutPlans: [WorkoutPlan] { ledger.values(WorkoutPlan.self, kind: .workoutPlan).sorted { $0.name < $1.name } }
+    var workoutLogs: [WorkoutLog] { ledger.values(WorkoutLog.self, kind: .workoutLog).sorted { $0.loggedAt > $1.loggedAt } }
+    var gymSettings: GymSettings { ledger.value(GymSettings.self, kind: .gymSettings, id: "shared") ?? GymSettings() }
+    func saveQuitHabit(_ habit: QuitHabit, old: QuitHabit? = nil) throws {
+        try habit.validate(); try put(habit, kind: .quitHabit, id: habit.id, old: old)
+    }
+    func checkIn(_ habit: QuitHabit, stayedFree: Bool) throws {
+        clockNow = Date()
+        guard let current = quitHabits.first(where: { $0.id == habit.id }), current.canCheckIn(now: clockNow, planning: planning) else {
+            throw DataError.invalid("Check in at your evening check-in time, using your planning timezone.")
+        }
+        let check = QuitCheckIn(habitID: habit.id, day: today, stayedFree: stayedFree, loggedAt: clockNow)
+        try put(check, kind: .quitCheckIn, id: check.id, atomic: true)
+        toast = stayedFree ? "Check-in saved. One day at a time." : "A fresh start is always possible."
+    }
+    func saveWorkoutPlan(_ plan: WorkoutPlan) throws {
+        try reconcile()
+        var batch = PlanChanges(ledger: ledger, actor: actor, day: today, planning: planning)
+        try batch.workout(plan)
+        try commit(batch.changes)
+    }
+    func logWorkout(_ log: WorkoutLog) throws {
+        clockNow = Date()
+        try reconcile()
+        var batch = PlanChanges(ledger: ledger, actor: actor, day: today, planning: planning)
+        try batch.logWorkout(log)
+        try commit(batch.changes)
+        toast = "Workout logged. Your muscle progress is updated."
+    }
+    func saveGymSettings(_ settings: GymSettings) throws {
+        try settings.validate(); try put(settings, kind: .gymSettings, id: "shared", atomic: true)
     }
     func saveMentalMath(settings: MentalMathSettings) throws {
         var record = mentalMath
@@ -84,15 +127,18 @@ import Observation
     func setMetadata(_ key: String, data: Data) throws {
         do { try stageMetadata(key, data: data); try context.save() } catch { context.rollback(); throw error }
     }
-    private func commit(_ changes: [Change], uploaded: Bool = false, token: Data? = nil, mathRecord: MentalMathRecord? = nil) throws {
+    private func commit(_ changes: [Change], uploaded: Bool = false, token: Data? = nil, mathRecord: MentalMathRecord? = nil, layout: HomeLayout? = nil, planID: String? = nil) throws {
         let merged = try ledger.merged(with: changes)
         var known = Set(ledger.changes.map(\.id))
         do {
             for change in changes where known.insert(change.id).inserted { context.insert(try StoredChange(change, uploaded: uploaded)) }
             if let token { try stageMetadata("cloudToken", data: token) }
             if let mathRecord { try stageMetadata("mentalMath", data: JSONEncoder().encode(mathRecord)) }
+            if let layout { try stageMetadata("homeLayout", data: JSONEncoder().encode(layout)) }
+            if let planID { try stageMetadata("aiPlan.\(planID)", data: Data("applied".utf8)) }
             try context.save()
             ledger = merged
+            if let layout { homeLayout = layout }
             if let mathRecord { mentalMath = mathRecord }
         } catch { context.rollback(); throw error }
         #if os(macOS)
@@ -106,6 +152,19 @@ import Observation
         try commit([Change(actor: actor, clock: ledger.maxClock + 1, generation: ledger.generation, kind: kind, entityID: id, fields: fields)])
     }
     func delete(kind: EntityKind, id: String) throws {
+        if kind == .workoutLog, let log = workoutLogs.first(where: { $0.id == id }) {
+            var batch = PlanChanges(ledger: ledger, actor: actor, day: today, planning: planning)
+            try batch.removeWorkoutLog(log)
+            try commit(batch.changes)
+            return
+        }
+        if kind == .workoutPlan, let plan = workoutPlans.first(where: { $0.id == id }) {
+            try reconcile()
+            var batch = PlanChanges(ledger: ledger, actor: actor, day: today, planning: planning)
+            try batch.workout(plan, deleting: true)
+            try commit(batch.changes)
+            return
+        }
         try commit([Change(actor: actor, clock: ledger.maxClock + 1, generation: ledger.generation, kind: kind, entityID: id, fields: [:], deleted: true)])
     }
     func saveProfile(_ profile: Profile, old: Profile? = nil) throws { try put(profile, kind: .profile, id: "shared", old: old ?? ledger.profile) }
@@ -145,7 +204,13 @@ import Observation
     }
     func reconcile() throws {
         clockNow = Date()
-        let missing = Recurrence.missingSnapshots(ledger: ledger, now: Date())
+        // Migrate existing workout plans once, starting today instead of inventing past quests.
+        var migration = PlanChanges(ledger: ledger, actor: actor, day: today, planning: planning)
+        for plan in workoutPlans where ledger.operations(.quest, plan.questID).isEmpty {
+            try migration.workout(plan)
+        }
+        if !migration.changes.isEmpty { try commit(migration.changes) }
+        let missing = Recurrence.missingSnapshots(ledger: ledger, now: clockNow)
         guard !missing.isEmpty else { return }
         let changes = try missing.enumerated().map { index, o in
             Change(actor: actor, clock: ledger.maxClock + Int64(index) + 1, generation: ledger.generation, kind: .occurrence, entityID: o.id, fields: try Codec.fields(o))
@@ -161,8 +226,8 @@ import Observation
         guard o.available, o.day <= today else { throw DataError.invalid("Future quests become available on their scheduled day") }
         if ledger.value(Occurrence.self, kind: .occurrence, id: o.id) == nil { try put(o, kind: .occurrence, id: o.id) }
         // Re-completion restores the original reward and quantity, even if difficulty changed.
-        var c = ledger.completion(o.id) ?? Completion(occurrence: o, day: o.weeklySlot == nil ? o.day : today)
-        c.active = true
+        var c = ledger.completion(o.id) ?? Completion(occurrence: o, day: today)
+        c.active = true; c.workoutLogID = nil
         let previousLevel = progress.level
         try put(c, kind: .completion, id: c.id, atomic: true)
         toast = progress.level > previousLevel ? "Level \(progress.level). Keep rising." : "+\(c.xp) XP · Quest complete"
@@ -209,7 +274,7 @@ import Observation
         do {
             for row in try context.fetch(FetchDescriptor<StoredChange>()) { context.delete(row) }
             for row in try context.fetch(FetchDescriptor<StoredMetadata>()) { context.delete(row) }
-            try context.save(); ledger = Ledger(); mentalMath = MentalMathRecord(); actor = UUID().uuidString; try setMetadata("actor", string: actor)
+            try context.save(); ledger = Ledger(); mentalMath = MentalMathRecord(); homeLayout = HomeLayout(); actor = UUID().uuidString; try setMetadata("actor", string: actor)
         }
         catch { context.rollback(); throw error }
         #if os(macOS)
@@ -217,4 +282,68 @@ import Observation
         #endif
         didChange?()
     }
+    func planningContext() throws -> Data {
+        struct Context: Encodable {
+            var day: String; var timeZone: String
+            var categories: [Category]; var goals: [Goal]; var quests: [Quest]
+            var workouts: [WorkoutPlan]; var quitting: [QuitHabit]
+            var theme: Theme; var subjects: [String]; var widgets: [HomeWidget]
+            var muscleTargets: [AIPlanPreferences.MuscleTarget]
+            var mathDifficulty: String; var mathSeconds: Int
+        }
+        let value = Context(day: today, timeZone: planning.zone, categories: categories.sorted { $0.id < $1.id },
+                            goals: ledger.goals.sorted { $0.id < $1.id },
+                            quests: ledger.quests.filter { $0.workoutPlanID == nil }.sorted { $0.id < $1.id },
+                            workouts: workoutPlans.sorted { $0.id < $1.id }, quitting: quitHabits.sorted { $0.id < $1.id },
+                            theme: profile.theme, subjects: profile.subjects, widgets: homeLayout.visible,
+                            muscleTargets: MuscleGroup.allCases.map { .init(muscle: $0, sessions: gymSettings.target($0)) },
+                            mathDifficulty: mentalMath.settings.difficultyName, mathSeconds: mentalMath.settings.seconds)
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let data = try encoder.encode(value)
+        guard data.count <= 45_000 else { throw DataError.invalid("Your app plan is too large to share in one request. Use chat to plan a smaller change manually.") }
+        return data
+    }
+    func applyAIPlan(_ plan: AIPlan, id: String, baseline: Data, generation: String) throws {
+        guard metadata("aiPlan.\(id)") == nil else { return }
+        clockNow = Date()
+        // Compare decoded JSON because native Sets have no stable array encoding order.
+        let original = try JSONSerialization.jsonObject(with: baseline) as? NSDictionary
+        let current = try JSONSerialization.jsonObject(with: planningContext()) as? NSDictionary
+        guard generation == ledger.generation, Self.equalPlanningContext(original, current) else {
+            throw DataError.invalid("Your plan or planning day changed since this preview. Generate a fresh plan before applying it.")
+        }
+        var batch = try plan.transaction(ledger: ledger, actor: actor, day: today, planning: planning, proposalID: id)
+        try batch.snapshots(now: clockNow)
+        try Archive.validate(batch.ledger)
+        var layout: HomeLayout?
+        if let widgets = plan.preferences.widgets {
+            var updated = homeLayout; updated.order = widgets + HomeWidget.allCases.filter { !widgets.contains($0) }
+            updated.hidden = Set(HomeWidget.allCases).subtracting(widgets); layout = updated.normalized
+        }
+        var math: MentalMathRecord?
+        if plan.preferences.mathDifficulty != nil || plan.preferences.mathSeconds != nil {
+            var updated = mentalMath
+            if let difficulty = plan.preferences.mathDifficulty { updated.settings.apply(difficulty) }
+            if let seconds = plan.preferences.mathSeconds { updated.settings.seconds = seconds }
+            math = updated
+        }
+        try commit(batch.changes, mathRecord: math, layout: layout, planID: id)
+        toast = "Your AI plan is ready in ASCEND."
+    }
+    private static func equalPlanningContext(_ a: NSDictionary?, _ b: NSDictionary?) -> Bool {
+        func normalizeSets(_ object: NSDictionary?) -> NSDictionary? {
+            guard var dict = object as? [String: Any], var workouts = dict["workouts"] as? [[String: Any]] else { return object }
+            for i in workouts.indices {
+                workouts[i]["weekdays"] = (workouts[i]["weekdays"] as? [Int])?.sorted()
+                if var exercises = workouts[i]["exercises"] as? [[String: Any]] {
+                    for j in exercises.indices { exercises[j]["muscles"] = (exercises[j]["muscles"] as? [String])?.sorted() }
+                    workouts[i]["exercises"] = exercises
+                }
+            }
+            dict["workouts"] = workouts
+            return dict as NSDictionary
+        }
+        return normalizeSets(a) == normalizeSets(b)
+    }
+
 }
